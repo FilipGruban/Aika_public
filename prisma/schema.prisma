@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  password  String
+  role      Role      @default(USER)
+  premium   Boolean   @default(false)
+  verified  DateTime?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  accounts      Account[]
+  calendars     Calendar[]
+  calendarGroup CalendarGroup[]
+  events        Event[]
+  tokens        VerificationToken[]
+  logs          ChangeLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Account {
+  id             String    @id @default(cuid())
+  provider       Provider
+  providerUserId String    @unique @map("provider_user_id")
+  accessToken    String?   @map("access_token") @db.Text
+  refreshToken   String?   @map("refresh_token") @db.Text
+  expiresIn      DateTime? @map("expires_in")
+
+  username   String? @map("username")
+  credential String? @map("credential") @db.Text
+
+  user      User       @relation(fields: [userId], references: [id])
+  userId    String     @map("user_id")
+  calendars Calendar[]
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@unique([userId, provider], name: "UserWithProvider")
+  @@map("accounts")
+}
+
+enum Provider {
+  google
+  microsoft
+  apple
+}
+
+model CalendarGroup {
+  id        String     @id @default(cuid())
+  name      String
+  user      User       @relation(fields: [userId], references: [id])
+  userId    String     @map("user_id")
+  calendars Calendar[]
+  createdAt DateTime   @default(now()) @map("created_at")
+}
+
+model Calendar {
+  id         String      @id @default(cuid())
+  externalId String      @unique
+  name       String
+  provider   String
+  account    Account     @relation(fields: [accountId], references: [id])
+  accountId  String
+  events     Event[]
+  logs       ChangeLog[]
+  createdAt  DateTime    @default(now())
+  User       User?       @relation(fields: [userId], references: [id])
+  userId     String?
+
+  calendarGroupId String?
+  CalendarGroup   CalendarGroup? @relation(fields: [calendarGroupId], references: [id])
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  externalId  String?  @unique
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  calendar    Calendar @relation(fields: [calendarId], references: [id])
+  calendarId  String
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VerificationToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
+
+model ChangeLog {
+  id         Int       @id @default(autoincrement())
+  type       String
+  action     String
+  details    String?
+  user       User?     @relation(fields: [userId], references: [id])
+  userId     String?
+  calendar   Calendar? @relation(fields: [calendarId], references: [id])
+  calendarId String?
+  createdAt  DateTime  @default(now())
+}

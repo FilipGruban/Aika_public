@@ -1,0 +1,16 @@
+import {auth} from "@/auth";
+import {userSchema} from "@/lib/zod";
+
+
+export async function getCurrentUser() {
+    const session = await auth();
+
+    if (session?.user) {
+        const user = userSchema.safeParse(session.user);
+        if (!user.success) {
+            return null;
+        }
+        return user.data;
+    }
+    return null;
+}
