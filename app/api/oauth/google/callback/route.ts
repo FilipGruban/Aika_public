@@ -5,11 +5,12 @@ import axiosInstance from "@/lib/axios";
 import {getAccount} from "@/lib/user";
 import {saveToken} from "@/lib/tokens";
 import {prisma} from "@/lib/prisma";
+import {verifyCsrfToken} from "@/lib/oauth/csrf";
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
     
-    if(!user){
+    if(!user || !user.emailVerified){
         return NextResponse.json({message: "Unauthorized"}, {status: 401});
     }
 
@@ -23,8 +24,9 @@ export async function GET(req: NextRequest) {
 
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
-    const savedState = (await cookies()).get("oauth_state")?.value;
-    if (!code || !state || state !== savedState) {
+    const csrfVerification = await verifyCsrfToken(state)
+
+    if (!code || !csrfVerification) {
         return NextResponse.redirect(new URL("/dashboard/settings/providers?error=Invalid+csrf+token", req.url));
     }
 
@@ -74,18 +76,18 @@ export async function GET(req: NextRequest) {
         if(connectedAccount){
             return NextResponse.redirect(new URL("/dashboard/settings/providers?error=This+account+is+already+connected+to+a+different+user", req.url));
         }
-
+        
         await saveToken({
-            username: userData.name,
             accessToken: tokenData.access_token,
             providerUserId: userData.sub,
             refreshToken:tokenData.refresh_token,
             userId:user.id,
             expiresIn:tokenData.expires_in,
-            provider:"google"
+            provider:"google",
+            providerEmail: userData.email
         })
 
-        return NextResponse.redirect(new URL("/dashboard/settings/providers?connected=Google+account+successfully+connected", req.url));
+        return NextResponse.redirect(new URL("/dashboard/settings/providers?success=Google+account+successfully+connected", req.url));
     }
     catch(error){
         console.error(error);

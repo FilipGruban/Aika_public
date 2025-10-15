@@ -7,7 +7,7 @@ export async function getCurrentUser() {
 
     if (session?.user) {
         const user = userSchema.safeParse(session.user);
-        if (!user.success) {
+        if (!user.success || !user.data.emailVerified) {
             return null;
         }
         return user.data;

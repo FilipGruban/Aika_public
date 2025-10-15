@@ -1,7 +1,7 @@
 import {getAccount} from "@/lib/user"
 import {getCurrentUser} from "@/lib/authUser"
 import {redirect, RedirectType} from "next/navigation";
-import AppleForm from "@/components/pages/AppleForm";
+import AppleForm from "@/components/AppleForm";
 
 
 async function Page() {

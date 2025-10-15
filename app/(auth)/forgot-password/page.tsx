@@ -6,16 +6,37 @@ import FormInput from "@/components/FormInput";
 import {Button} from "@/components/ui/button";
 import Link from "next/link";
 import {useForm} from "react-hook-form";
-import {ResetPasswordInput, resetPasswordSchema} from "@/lib/zod";
+import {RequestResetPasswordInput, requestResetPasswordSchema} from "@/lib/zod";
 import {zodResolver} from "@hookform/resolvers/zod";
+import {toast} from "sonner";
+import {requestPasswordReset} from "@/actions/reset-password";
 
 function Page() {
-    const form = useForm<ResetPasswordInput>({
-        resolver: zodResolver(resetPasswordSchema),
+    const form = useForm<RequestResetPasswordInput>({
+        resolver: zodResolver(requestResetPasswordSchema),
         defaultValues:{
             email: ""
         }
     })
+
+
+    async function handlePasswordReset({email}: RequestResetPasswordInput) {
+        try {
+            const response = await requestPasswordReset(email);
+
+            if (!response.success) {
+                toast.error(response.message)
+                return;
+            }
+            toast.success(response.message);
+            form.reset();
+
+        } catch (error) {
+            toast.error("Something went wrong.")
+            console.error(error)
+        }
+    }
+
 
     return (
         <div className="relative z-10 w-full max-w-md p-4">
@@ -30,7 +51,7 @@ function Page() {
                     </p>
                 </CardHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(()=>{})} className="space-y-5">
+                    <form onSubmit={form.handleSubmit(handlePasswordReset)} className="space-y-5">
                         <FormInput
                             type={"text"}
                             name="email"

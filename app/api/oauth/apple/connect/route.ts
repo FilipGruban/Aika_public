@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/authUser";
 import axiosInstance from "@/lib/axios";
-import {decrypt, encrypt } from "@/lib/encryption";
+import { encrypt } from "@/lib/encryption";
 import { prisma } from "@/lib/prisma";
 import { saveToken } from "@/lib/tokens";
 import { getAccount } from "@/lib/user";
@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest){
     const user = await getCurrentUser()
-    if(!user){
+    if(!user || !user.emailVerified){
         return NextResponse.json({message:"Unauthorized"}, {status:403})
     }
 
@@ -48,14 +48,15 @@ export async function POST(req: NextRequest){
         if(response.status !== 200 && response.status !== 207){
             return NextResponse.json({message:"Authentication failed, invalid credentials"}, {status:400});
         }
+
         const encryptedPassword = encrypt(validatedCredentials.password);
 
         await saveToken({
             userId: user.id,
             provider: "apple",
             providerUserId: validatedCredentials.email,
-            username: user.name,
             credential: encryptedPassword,
+            providerEmail: validatedCredentials.email
         })
 
         return NextResponse.json({message:"Successfully connected apple account"}, {status:200});

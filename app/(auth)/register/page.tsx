@@ -32,7 +32,7 @@ function Page() {
                 toast.error(response.message);
                 return;
             }
-            toast.success("Signed up successfully");
+            toast.success(response.message);
             form.reset();
         } catch (error) {
             toast.error("Something went wrong.")

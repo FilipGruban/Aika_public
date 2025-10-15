@@ -1,4 +1,4 @@
-import SettingsMenu from "@/components/layout/SettingsMenu";
+import SettingsMenu from "@/components/SettingsMenu";
 
 export default function Layout({children}: Readonly<{
     children: React.ReactNode;

@@ -1,15 +1,15 @@
 import {NextRequest, NextResponse} from "next/server";
 import {getCurrentUser} from "@/lib/authUser";
 import {getAccount} from "@/lib/user";
-import {cookies} from "next/headers";
 import axiosInstance from "@/lib/axios";
 import {prisma} from "@/lib/prisma";
 import {saveToken} from "@/lib/tokens";
+import {verifyCsrfToken} from "@/lib/oauth/csrf";
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
 
-    if(!user){
+    if(!user || !user.emailVerified){
         return NextResponse.json({message: "Unauthorized"}, {status: 401});
     }
 
@@ -22,9 +22,9 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
+    const csrfVerification = await verifyCsrfToken(state)
 
-    const savedState = (await cookies()).get("oauth_state")?.value;
-    if (!code || !state || state !== savedState) {
+    if (!code || !csrfVerification) {
         return NextResponse.redirect(new URL("/dashboard/settings/providers?error=Invalid+csrf+token", req.url));
     }
 
@@ -79,16 +79,16 @@ export async function GET(req: NextRequest) {
         }
 
         await saveToken({
-            username: userData.displayName,
             accessToken: tokenData.access_token,
             providerUserId: userData.id,
             refreshToken:tokenData.refresh_token,
             userId:user.id,
             expiresIn:tokenData.expires_in,
-            provider:"microsoft"
+            provider:"microsoft",
+            providerEmail: userData.mail
         })
 
-        return NextResponse.redirect(new URL("/dashboard/settings/providers?connected=Microsoft+account+successfully+connected", req.url));
+        return NextResponse.redirect(new URL("/dashboard/settings/providers?success=Microsoft+account+successfully+connected", req.url));
     }
     catch(error){
         console.error(error);

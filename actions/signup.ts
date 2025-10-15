@@ -2,12 +2,13 @@
 import {SignUpInput, signUpSchema} from "@/lib/zod"
 import {prisma} from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { sendVerificationEmail} from "@/lib/email";
 
 export async function signUp(credentials : SignUpInput){
     const validatedCredentials = signUpSchema.safeParse(credentials);
 
     if(!validatedCredentials.success){
-        return {success:false, message:"Invalid input"};
+        return {success:false, message:"Invalid input."};
     }
 
     const {name, email, password } = validatedCredentials.data;
@@ -15,23 +16,26 @@ export async function signUp(credentials : SignUpInput){
     const existingUserEmail = await prisma.user.findUnique({where:{email}});
 
     if(existingUserEmail){
-        return {success:false, message:"User with this email address already exists"};
+        return {success:false, message:"User with this email address already exists."};
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try{
-        await prisma.user.create({
+        const user = await prisma.user.create({
             data:{
                 name,
                 email,
                 password :hashedPassword,
             }
         });
-        return { success: true, message:"User successfully created"};
+
+        await sendVerificationEmail(user.id, user.email);
+
+        return { success: true, message:"User successfully created. We have send you verification email."};
     }
     catch(err){
         console.error("Prisma error during user creation:", err);
-        return {success: false, message:"Something went wrong"};
+        return {success: false, message:"Something went wrong."};
     }
 }

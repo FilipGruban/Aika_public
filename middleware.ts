@@ -7,7 +7,7 @@ const { auth } = NextAuth(authConfig)
 
 const authPrefix = '/api/auth';
 const publicPaths = ["/",];
-const authPaths = ["/login", "/register", "/forgot-password"];
+const authPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
 //const adminPaths = ["/admin"];
 
 

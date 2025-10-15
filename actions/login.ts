@@ -2,10 +2,23 @@
 import {signIn} from "@/auth";
 import {AuthError} from "next-auth";
 import {SignInInput} from "@/lib/zod";
+import {sendVerificationEmail} from "@/lib/email";
+import {getUserByEmail} from "@/lib/user";
 
-//server action pro prihlaseni
 export async function login(credentials : SignInInput) {
     try{
+
+        const user = await getUserByEmail(credentials.email);
+        if (!user) {
+            return { success: false, message: "Invalid email or password." };
+        }
+
+        if (!user.emailVerified) {
+            await sendVerificationEmail(user.id, user.email);
+            return { success: false, message: "Please verify your email." };
+        }
+
+
         await signIn("credentials", {
             email: credentials.email,
             password: credentials.password,

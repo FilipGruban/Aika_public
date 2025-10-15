@@ -18,17 +18,17 @@ function Navigation() {
                     <NavigationMenuContent>
                         <ul className={"flex flex-col w-[250px] gap-4"}>
                             <ListItem
-                                href={"/dashboard/calendar-groups"}
-                                title={"My Groups"}
-                            >Display your calendar groups</ListItem>
+                                href={"/dashboard/calendars"}
+                                title={"My Calendars"}
+                            >Display your calendars</ListItem>
                             <ListItem
-                                href={"/dashboard/calendar-groups/new"}
-                                title={"New Group"}
-                            >Create new calendar group</ListItem>
+                                href={"/dashboard/calendars/modify"}
+                                title={"Modify Calendars"}
+                            >Modify your calendars</ListItem>
                             <ListItem
-                                href={"/dashboard/calendar-groups/about"}
+                                href={"/dashboard/calendars/about"}
                                 title={"Help"}
-                            >Learn about calendar groups</ListItem>
+                            >Learn about calendars</ListItem>
                         </ul>
                     </NavigationMenuContent>
                 </NavigationMenuItem>

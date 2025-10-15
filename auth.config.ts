@@ -4,6 +4,7 @@ import {signInSchema} from "@/lib/zod";
 import {prisma} from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import {getUserById} from "@/lib/user";
+import {sendVerificationEmail} from "@/lib/email";
 
 export default {
     providers: [
@@ -33,6 +34,9 @@ export default {
                         id: user.id,
                         name: user.name,
                         email: user.email,
+                        premium: user.premium,
+                        role: user.role,
+                        emailVerified: user.emailVerified,
                     };
                 }catch (error) {
                     console.error("Error during authorization:", error);
@@ -42,6 +46,15 @@ export default {
         }),
     ],
     callbacks:{
+        async signIn({user}){
+            if(!user || !user.id || !user.email){
+                return "login?error=Invalid+user";
+            }
+            if(!user.emailVerified){
+                return "/login?info=Verify+your+email+before+login";
+            }
+            return true;
+        },
         async session({token, session}){
             if(token.sub && session.user){
                 session.user.id = token.sub;
@@ -66,7 +79,7 @@ export default {
 
             token.isPremium = user.premium;
 
-            token.verified = user.verified ? new Date(user.verified) : null;
+            token.emailVerified = user.emailVerified ? new Date(user.emailVerified) : null;
             return token;
         },
     },

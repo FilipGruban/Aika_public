@@ -29,7 +29,7 @@ function AppleForm() {
                 toast.error(response.data.message);
                 return;
             }
-            router.replace("/dashboard/settings/providers?connected=Apple+successfully+connected");
+            router.replace("/dashboard/settings/providers?success=Apple+successfully+connected");
         } catch (error) {
             toast.error("Something went wrong");
             console.error(error);

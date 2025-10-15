@@ -43,8 +43,22 @@ export const signUpSchema = signInSchema.extend({
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
-export const resetPasswordSchema = signInSchema.pick({email: true})
+export const requestResetPasswordSchema = signInSchema.pick({email: true})
+export type RequestResetPasswordInput = z.infer<typeof requestResetPasswordSchema>;
+
+
+export const resetPasswordSchema = signInSchema.pick({
+    password: true,
+}).extend({
+    confirmPassword: z.string()
+        .min(1, "Please confirm your password")
+}).refine((data) => data.password === data.confirmPassword,
+    {
+        path: ["confirmPassword"],
+        message: "Passwords do not match",
+    })
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
 
 
 export const appleIdSchema = z.object({

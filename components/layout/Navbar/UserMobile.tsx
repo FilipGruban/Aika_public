@@ -28,9 +28,9 @@ function UserMobile({user}: {user: UserType}) {
                         </div>
                         <div className="grid gap-10 text-center">
                             <LinkGroup title={"Calendars"} icon={CalendarCog}>
-                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/calendar-groups"}>My Groups</Link>
-                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/calendar-groups/new"}>Create Group</Link>
-                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/calendar-groups/about"}>About Groups</Link>
+                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/calendars"}>My Calendars</Link>
+                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/calendars/modify"}>Modify Calendars</Link>
+                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/calendars/about"}>About Calendars</Link>
                             </LinkGroup>
                             <LinkGroup title={"Premium"} icon={Crown}>
                                 <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/premium"}>Buy Premium</Link>

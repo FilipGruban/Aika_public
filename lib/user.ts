@@ -10,6 +10,15 @@ export const getUserById = async (id: string) => {
     }
 }
 
+export const getUserByEmail = async (email: string) => {
+    try {
+        return await prisma.user.findUnique({ where: { email: email }, omit:{password:true}});
+    }
+    catch {
+        return null;
+    }
+}
+
 export async function getAllAccounts(userId:string) {
     try {
         return await prisma.account.findMany({
