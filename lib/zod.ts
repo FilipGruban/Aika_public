@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {Role} from "@prisma/client";
+import {Provider, Role} from "@prisma/client";
 
 
 export const userSchema = z.object({
@@ -70,3 +70,34 @@ export const appleIdSchema = z.object({
         .regex(/^[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$/, "Invalid app-specific password format"),
 })
 export type appleIdInput = z.infer<typeof appleIdSchema>;
+
+
+export const createCalendarGroupSchema = z.object({
+    name: z
+        .string()
+        .min(1, "Group name is required")
+        .max(20, "Group name must be under 20 characters"),
+    description: z
+        .string()
+        .max(100, "Description must be under 100 characters")
+        .optional(),
+    mainCalendarId: z
+        .string()
+        .nonempty("Main calendar is required"),
+    provider: z.union([z.nativeEnum(Provider), z.literal("")])
+        .refine((val) => val !== "" && Object.values(Provider).includes(val), {
+            message: "Please select a valid provider",
+        })
+});
+
+export type createCalendarGroupInput = z.infer<typeof createCalendarGroupSchema>;
+
+export const addSecondaryCalendarsSchema = z.object({
+    calendars: z.array(
+        z.object({
+            id: z.string(),
+            provider: z.nativeEnum(Provider)
+        })),
+});
+
+export type AddSecondaryCalendarsInput = z.infer<typeof addSecondaryCalendarsSchema>;

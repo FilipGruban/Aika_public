@@ -1,20 +1,35 @@
 "use server";
 import {prisma} from "@/lib/prisma";
-import {sendPasswordResetEmail} from "@/lib/email";
 import {z} from "zod";
 import bcrypt from "bcryptjs";
-import {redirect} from "next/navigation";
+import {checkPasswordResetLimit} from "@/lib/rate-limits";
+import {emailQueue} from "@/lib/queues";
+import {sendPasswordResetEmail} from "@/lib/email";
 
 export async function requestPasswordReset(email: string) {
     try{
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user){
+            const rateLimit = await checkPasswordResetLimit(email);
+
+            if (!rateLimit.success) return {success: false, message:rateLimit.message};
+
             return {success:true, message: "If an account exists with this email, a reset link has been sent"};
         }
 
-        await sendPasswordResetEmail(user.id, user.email);
-        return {success:true, message: "If an account exists with this email, a reset link has been sent"};
+        const rateLimit = await checkPasswordResetLimit(email);
 
+        if (!rateLimit.success) {
+            return{
+                success: false,
+                message: rateLimit.message,
+                retryAfter: rateLimit.retryAfter
+            }
+        }
+
+        await emailQueue.add('verify-email',{userId: user.id, email: user.email});
+
+        return {success:true, message: "If an account exists with this email, a reset link has been sent"};
     }
     catch(err){
         console.log(err);
@@ -30,11 +45,9 @@ const resetPasswordBackendSchema = z.object({
 export async function resetPassword(password: string, userId: string, token: string) {
     try{
         const parsedPassword = resetPasswordBackendSchema.safeParse({password});
-
         if (!parsedPassword.success){
-            return {success:false, message: "Invalid input"};
+            return {success:false, message: "Invalid password format."};
         }
-        const newPassword = parsedPassword.data.password;
 
         const resetToken = await prisma.passwordResetToken.findUnique({
             where:{
@@ -42,35 +55,40 @@ export async function resetPassword(password: string, userId: string, token: str
             }
         })
 
-        if(!resetToken || resetToken.userId !== userId){
-            return {success:false, message: "Invalid reset token."};
+        if (!resetToken) {
+            return { success: false, message: "Invalid or expired reset token." };
         }
 
-        if(resetToken.expires.getTime() < Date.now()){
-            return {success:false, message: "Expired reset token."};
+        if (resetToken.userId !== userId) {
+            return { success: false, message: "Invalid reset token." };
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        if (resetToken.expires.getTime() < Date.now()) {
+            await prisma.passwordResetToken.delete({ where: { token } });
+            return { success: false, message: "Reset token has expired. Please request a new one." };
+        }
 
-        await prisma.user.update({
-            where:{
-                id: userId,
-            },
-            data: {
-                password: hashedPassword,
-            }
-        })
+        const hashedPassword = await bcrypt.hash(parsedPassword.data.password, 10);
 
-        await prisma.passwordResetToken.delete({
-            where:{
-                token,
-            }
-        })
+        await prisma.$transaction([
+            prisma.user.update({
+                where: { id: userId },
+                data: { password: hashedPassword }
+            }),
+            prisma.passwordResetToken.deleteMany({
+                where: { userId }
+            })
+        ]);
+
         return {success:true, message: "Password reset successfully."};
     }
     catch(error){
-        console.log(error);
-        return {success:false, message: "Something went wrong."};
+        console.error('[Reset Password] Error:', {
+            userId,
+            timestamp: new Date().toISOString(),
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        return { success: false, message: "Failed to reset password. Please try again." };
     }
 
 }

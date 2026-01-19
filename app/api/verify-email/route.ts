@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {prisma} from "@/lib/prisma";
-import {sendVerificationEmail} from "@/lib/email";
+import {emailQueue} from "@/lib/queues";
 
 export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
         }
 
         if (new Date(verificationToken.expires).getTime() <= Date.now()) {
-            await sendVerificationEmail(verificationToken.user.id, verificationToken.user.email);
+            await emailQueue.add('verify-email', {userId: verificationToken.user.id, email: verificationToken.user.email})
             return NextResponse.redirect(new URL("/login?info=Check+your+email+for+new+verification+token", req.url));
         }
 

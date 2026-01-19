@@ -15,7 +15,7 @@ export async function GET() {
                 "offline_access",
                 "User.Read",
                 "Calendars.ReadWrite",
-                "Calendars.ReadWrite.Shared"
+                "Calendars.ReadWrite.Shared",
             ].join(" "),
             response_mode: "query",
             state,

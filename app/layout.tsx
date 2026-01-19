@@ -44,8 +44,10 @@ export default function RootLayout({
   return (
     <html lang="en">
         <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gradient-to-br from-purple-100 via-white to-blue-100 min-h-screen`}
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.96_0.03_25)_0%,transparent_50%)] pointer-events-none -z-10" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,oklch(0.96_0.03_180)_0%,transparent_50%)] pointer-events-none -z-10" />
             <Providers>
                 <Toaster position="top-right" expand={true} richColors />
                 {children}

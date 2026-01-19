@@ -1,4 +1,4 @@
-import {Provider, Account} from "@prisma/client";
+import {Provider} from "@prisma/client";
 import {prisma} from "@/lib/prisma";
 import axiosInstance from "@/lib/axios";
 import {getAccount} from "@/lib/user";
@@ -78,7 +78,7 @@ export async function refreshGoogleToken(refreshToken: string, userId: string) {
         return data.access_token;
     } catch (error) {
         console.error(error);
-        throw new Error("Failed to refresh token");
+        return null;
     }
 }
 
@@ -157,6 +157,10 @@ export async function getOAuthToken(userId: string, provider: Provider) {
             }
         }
 
+        if (!account.accessToken) {
+            return null;
+        }
+
         return account.accessToken;
     } catch (error) {
         console.error(error);
@@ -165,15 +169,26 @@ export async function getOAuthToken(userId: string, provider: Provider) {
 }
 
 
-export function getCredentials(account: Account) {
-    if (!account.providerEmail || !account.credential) {
-        throw new Error(`Missing credential for provider ${account.provider}`);
-    }
+export async function getAppleCredentials(userId: string) {
+    try {
+        const account = await getAccount(userId, "apple");
+        if(!account){
+            return null;
+        }
 
-    return {
-        username: account.providerEmail,
-        credential: account.credential,
-    };
+        if (!account.providerEmail || !account.credential) {
+            return null;
+        }
+
+        return {
+            username: account.providerEmail,
+            credential: account.credential,
+        };
+    }
+    catch (e){
+        console.error(e);
+        return null;
+    }
 }
 
 

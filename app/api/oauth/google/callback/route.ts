@@ -1,11 +1,11 @@
 import {getCurrentUser} from "@/lib/authUser";
 import {NextRequest, NextResponse} from "next/server";
-import {cookies} from "next/headers";
 import axiosInstance from "@/lib/axios";
 import {getAccount} from "@/lib/user";
 import {saveToken} from "@/lib/tokens";
 import {prisma} from "@/lib/prisma";
 import {verifyCsrfToken} from "@/lib/oauth/csrf";
+import {notificationQueue} from "@/lib/queues";
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -86,6 +86,8 @@ export async function GET(req: NextRequest) {
             provider:"google",
             providerEmail: userData.email
         })
+
+        await notificationQueue.add('google-connected-notification',{userId: user.id, type: "alert", title: "Google account connected", message:"You have successfully conected your google account."})
 
         return NextResponse.redirect(new URL("/dashboard/settings/providers?success=Google+account+successfully+connected", req.url));
     }

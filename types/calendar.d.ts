@@ -1,9 +1,22 @@
-import {AccessRole} from "@prisma/client";
+import {AccessRole, Provider} from "@prisma/client";
 
-
-export interface CalendarItem {
-    id: string;
+export interface ProviderCalendarResponse {
+    providerCalendarId: string;
     name: string;
+    timeZone?: string;
     accessRole: AccessRole;
-    selected: boolean;
+    used?: boolean;
+    provider: Provider;
+}
+
+export interface CalendarDTO {
+    id: string;
+    providerCalendarId: string;
+    provider: Provider;
+    name: string;
+    timeZone: string | null;
+    accessRole: AccessRole;
+    lastSyncedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
 }

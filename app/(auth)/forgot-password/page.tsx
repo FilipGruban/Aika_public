@@ -70,7 +70,7 @@ function Page() {
                         </Button>
                     </form>
                 </Form>
-                <div className={"flex items-center flex-col gap-4"}>
+                <div className={"flex items-center flex-col gap-4 border-t border-border pt-6"}>
                     <div className="text-center text-sm text-muted-foreground">
                         Don’t have an account?{" "}
                         <Link href="/register" className="font-medium text-primary hover:underline">

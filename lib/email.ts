@@ -3,7 +3,6 @@ import crypto from "crypto";
 import {addMinutes} from "date-fns";
 import {prisma} from "@/lib/prisma";
 import {renderVerificationEmail} from "@/emails/VerificationEmail";
-import redis from "@/lib/redis";
 import {renderResetPasswordEmail} from "@/emails/ResetPasswordEmail";
 
 export const transporter = nodemailer.createTransport({
@@ -22,17 +21,8 @@ export const mailOptions = {
 
 
 export async function sendVerificationEmail(id: string, email:string){
-
-    const cooldownKey = `verify-email-cooldown:${id}`
-    const cooldown = await redis.get(cooldownKey);
-
-    if (cooldown) {
-        return;
-    }
-
     const token = crypto.randomBytes(32).toString("hex");
     const expires = addMinutes(new Date(), 30);
-
 
     await prisma.verificationToken.create({
         data: {
@@ -52,19 +42,16 @@ export async function sendVerificationEmail(id: string, email:string){
         subject: 'Verify Your Email Address',
         html: html,
     };
+
     await transporter.sendMail(options);
-    await redis.set(cooldownKey, '1', 'EX', 1800);
+
+    return {
+        success: true,
+        message: "Verification email sent"
+    };
 }
 
 export async function sendPasswordResetEmail(id: string, email:string){
-
-    const cooldownKey = `reset-passsword-cooldown:${id}`
-    const cooldown = await redis.get(cooldownKey);
-
-    if (cooldown) {
-        return;
-    }
-
 
     const token = crypto.randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 60 * 60 * 1000);
@@ -89,5 +76,10 @@ export async function sendPasswordResetEmail(id: string, email:string){
         html: html,
     };
     await transporter.sendMail(options);
-    await redis.set(cooldownKey, '1', 'EX', 3600);
+
+    return {
+        success: true,
+        message: "Password reset email sent"
+    }
+
 }

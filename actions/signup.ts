@@ -2,7 +2,7 @@
 import {SignUpInput, signUpSchema} from "@/lib/zod"
 import {prisma} from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { sendVerificationEmail} from "@/lib/email";
+import {emailQueue} from "@/lib/queues";
 
 export async function signUp(credentials : SignUpInput){
     const validatedCredentials = signUpSchema.safeParse(credentials);
@@ -13,6 +13,8 @@ export async function signUp(credentials : SignUpInput){
 
     const {name, email, password } = validatedCredentials.data;
 
+    try{
+
     const existingUserEmail = await prisma.user.findUnique({where:{email}});
 
     if(existingUserEmail){
@@ -21,7 +23,7 @@ export async function signUp(credentials : SignUpInput){
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    try{
+
         const user = await prisma.user.create({
             data:{
                 name,
@@ -30,7 +32,7 @@ export async function signUp(credentials : SignUpInput){
             }
         });
 
-        await sendVerificationEmail(user.id, user.email);
+        await emailQueue.add('verify-email', {userId: user.id, email: user.email});
 
         return { success: true, message:"User successfully created. We have send you verification email."};
     }

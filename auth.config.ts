@@ -4,7 +4,6 @@ import {signInSchema} from "@/lib/zod";
 import {prisma} from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import {getUserById} from "@/lib/user";
-import {sendVerificationEmail} from "@/lib/email";
 
 export default {
     providers: [

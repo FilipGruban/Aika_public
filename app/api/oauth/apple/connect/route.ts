@@ -6,6 +6,7 @@ import { saveToken } from "@/lib/tokens";
 import { getAccount } from "@/lib/user";
 import { appleIdSchema } from "@/lib/zod";
 import { NextRequest, NextResponse } from "next/server";
+import {notificationQueue} from "@/lib/queues";
 
 export async function POST(req: NextRequest){
     const user = await getCurrentUser()
@@ -58,6 +59,8 @@ export async function POST(req: NextRequest){
             credential: encryptedPassword,
             providerEmail: validatedCredentials.email
         })
+
+        await notificationQueue.add('apple-connected-notification',{userId: user.id, type: "alert", title: "Apple account connected", message:"You have successfully conected your apple account."})
 
         return NextResponse.json({message:"Successfully connected apple account"}, {status:200});
     }

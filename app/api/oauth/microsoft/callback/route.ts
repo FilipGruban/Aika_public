@@ -5,6 +5,7 @@ import axiosInstance from "@/lib/axios";
 import {prisma} from "@/lib/prisma";
 import {saveToken} from "@/lib/tokens";
 import {verifyCsrfToken} from "@/lib/oauth/csrf";
+import {notificationQueue} from "@/lib/queues";
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -87,6 +88,8 @@ export async function GET(req: NextRequest) {
             provider:"microsoft",
             providerEmail: userData.mail
         })
+
+        await notificationQueue.add('microsoft-connected-notification',{userId: user.id, type: "alert", title: "Microsoft account connected", message:"You have successfully conected your microsoft account."})
 
         return NextResponse.redirect(new URL("/dashboard/settings/providers?success=Microsoft+account+successfully+connected", req.url));
     }

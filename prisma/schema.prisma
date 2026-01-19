@@ -18,8 +18,8 @@ model User {
   email         String    @unique
   name          String
   password      String
-  role          Role      @default(USER)
-  premium       Boolean   @default(false)
+  role          Role      @default(user)
+  premium       DateTime?
   emailVerified DateTime? @map("email_verified")
   createdAt     DateTime  @default(now()) @map("created_at")
 
@@ -28,15 +28,15 @@ model User {
   logs                ChangeLog[]
   passwordResetTokens PasswordResetToken[]
   Calendar            Calendar[]
-  Event               Event[]
   Notification        Notification[]
+  CalendarGroup       CalendarGroup[]
 
   @@map("users")
 }
 
 enum Role {
-  USER
-  ADMIN
+  user
+  admin
 }
 
 model Account {
@@ -51,7 +51,7 @@ model Account {
   username   String?
   credential String? @db.Text
 
-  user      User       @relation(fields: [userId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String     @map("user_id")
   calendars Calendar[]
   createdAt DateTime   @default(now()) @map("created_at")
@@ -72,13 +72,13 @@ model VerificationToken {
   userId    String   @map("user_id")
   expires   DateTime
   createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("verification_tokens")
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        Int      @id @default(autoincrement())
   userId    String   @map("user_id")
   token     String   @unique
   expires   DateTime
@@ -89,25 +89,48 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model CalendarGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  userId      String   @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  calendars Calendar[] @relation("GroupCalendars")
+
+  primaryCalendarId String   @unique @map("primary_calendar_id")
+  primaryCalendar   Calendar @relation("PrimaryCalendar", fields: [primaryCalendarId], references: [id])
+
+  @@map("calendar_groups")
+}
+
 model Calendar {
   id                 String     @id @default(cuid())
-  providerCalendarId String     @map("provider_calendar_id")
+  providerCalendarId String     @unique @map("provider_calendar_id")
+  provider           Provider
   name               String
-  description        String?
-  timeZone           String?    @map("time_zone")
-  primary            Boolean    @default(false)
-  selected           Boolean    @default(true)
+  timeZone           String?    @default("UTC") @map("time_zone")
   accessRole         AccessRole @map("access_role")
   lastSyncedAt       DateTime?  @map("last_synced_at")
   createdAt          DateTime   @default(now()) @map("created_at")
   updatedAt          DateTime   @updatedAt @map("updated_at")
 
-  User      User?       @relation(fields: [userId], references: [id])
-  userId    String?     @map("user_id")
+  User      User        @relation(fields: [userId], references: [id])
+  userId    String      @map("user_id")
   events    Event[]
   ChangeLog ChangeLog[]
   account   Account     @relation(fields: [accountId], references: [id])
   accountId String      @map("account_id")
+
+  group   CalendarGroup? @relation("GroupCalendars", fields: [groupId], references: [id])
+  groupId String?        @map("group_id")
+
+  primaryOf CalendarGroup? @relation("PrimaryCalendar")
+
+  @@map("calendars")
 }
 
 enum AccessRole {
@@ -117,23 +140,29 @@ enum AccessRole {
 }
 
 model Event {
-  id         String   @id @default(cuid())
-  calendar   Calendar @relation(fields: [calendarId], references: [id])
-  calendarId String   @map("calendar_id")
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  provider           Provider
+  providerCalendarId String   @map("provider_calendar_id")
+  externalId         String   @map("external_id")
 
-  providerEventId String   @map("provider_event_id")
-  title           String
-  description     String?
-  start           DateTime
-  end             DateTime
-  allDay          Boolean  @default(false) @map("all_day_event")
+  recurrenceRule String?  @map("recurrence_rule")
+  title          String
+  description    String?
+  start          DateTime
+  end            DateTime
+  location       String?
+  status         String?
+  isAllDay       Boolean  @default(false) @map("is_all_day")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?  @map("user_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  calendar   Calendar? @relation(fields: [calendarId], references: [id])
+  calendarId String?   @map("calendar_id")
 
-  @@unique([calendarId, providerEventId])
+  @@unique([userId, provider, externalId])
+  @@index([userId, providerCalendarId])
+  @@map("events")
 }
 
 model ChangeLog {
@@ -146,6 +175,8 @@ model ChangeLog {
   calendar   Calendar? @relation(fields: [calendarId], references: [id])
   calendarId String?   @map("calendar_id")
   createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("change_logs")
 }
 
 model Notification {
@@ -162,11 +193,14 @@ model Notification {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notifications")
 }
 
 enum NotificationType {
   verification
   sync
   alert
+  error
   payment
 }

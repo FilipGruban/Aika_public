@@ -4,7 +4,7 @@ import User from "@/components/layout/Navbar/User";
 import Navigation from "@/components/layout/Navbar/Navigation";
 import UserMobile from "@/components/layout/Navbar/UserMobile";
 import {getCurrentUser} from "@/lib/authUser";
-import Notifications from "@/components/layout/Navbar/Notifications";
+import NotificationsTrigger from "@/components/layout/Navbar/NotificationsTrigger";
 
 async function Navbar() {
     const user = await getCurrentUser()
@@ -18,7 +18,7 @@ async function Navbar() {
                     <Logo/>
                     <Navigation/>
                     <div className={"flex gap-6 items-center"}>
-                        <Notifications/>
+                        <NotificationsTrigger/>
                         <User user={user} />
                         <UserMobile user={user}/>
                     </div>

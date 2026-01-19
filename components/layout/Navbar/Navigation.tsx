@@ -18,13 +18,9 @@ function Navigation() {
                     <NavigationMenuContent>
                         <ul className={"flex flex-col w-[250px] gap-4"}>
                             <ListItem
-                                href={"/dashboard/calendars"}
+                                href={"/dashboard/calendars/groups"}
                                 title={"My Calendars"}
                             >Display your calendars</ListItem>
-                            <ListItem
-                                href={"/dashboard/calendars/modify"}
-                                title={"Modify Calendars"}
-                            >Modify your calendars</ListItem>
                             <ListItem
                                 href={"/dashboard/calendars/about"}
                                 title={"Help"}

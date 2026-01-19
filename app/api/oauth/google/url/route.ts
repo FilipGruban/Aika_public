@@ -23,6 +23,7 @@ export async function GET() {
         return NextResponse.json({url}, {status: 200});
     }
     catch (error) {
+        console.error(error);
         return NextResponse.json({message:"Something went wrong while creating google auth url."}, {status: 400});
     }
 

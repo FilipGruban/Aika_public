@@ -6,7 +6,9 @@ export default function Layout({children}: Readonly<{
     return (
         <>
             <Navbar/>
-            {children}
+            <main className={"pt-24"}>
+                {children}
+            </main>
         </>
     );
 }
