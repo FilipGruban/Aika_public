@@ -1,13 +1,13 @@
 "use client"
-import React from 'react';
+import React, {useTransition} from 'react';
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
-import {ArrowLeft, Edit, MoreVertical, Settings, Trash2} from "lucide-react";
-import {deteleCalendarGroup} from "@/actions/group";
+import {ArrowLeft, MoreVertical, LucideCalendarSync} from "lucide-react";
 import {toast} from "sonner";
-import {useRouter} from "next/navigation";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
-
+import {triggerSync} from "@/actions/synchronize";
+import {useRouter} from "next/navigation";
+import {mutate} from "swr";
 interface Props {
     name: string;
     createdAt: Date;
@@ -15,16 +15,18 @@ interface Props {
 }
 
 function GroupPageHeader({name, createdAt, id}: Props) {
-    const router  = useRouter()
-    async function handleDelete(){
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+    async function handleSync(){
         try {
-            const res = await deteleCalendarGroup(id)
-            if (!res.success){
-                toast.error(res.message)
-                return;
-            }
-            toast.success(res.message)
-            router.replace("/dashboard/calendars/groups");
+            startTransition(async () => {
+                const res = await triggerSync(id);
+                if (!res.success){
+                    toast.error(res.message)
+                    return;
+                }
+                toast.success(res.message)
+            });
         }
         catch (error){
             console.log(error)
@@ -49,13 +51,9 @@ function GroupPageHeader({name, createdAt, id}: Props) {
                 </div>
             </div>
             <div className="hidden items-center gap-2 sm:flex">
-                <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
-                </Button>
-                <Button variant="destructive" size="sm" onClick={handleDelete}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Group
+                <Button disabled={isPending} variant="outline" size="sm" onClick={handleSync}>
+                    <LucideCalendarSync className="w-4 h-4 mr-2" />
+                    Synchronize
                 </Button>
             </div>
             <DropdownMenu>
@@ -65,16 +63,9 @@ function GroupPageHeader({name, createdAt, id}: Props) {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={()=>{}}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={handleDelete}
-                    >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
+                    <DropdownMenuItem onClick={handleSync}>
+                        <LucideCalendarSync className="w-4 h-4 mr-2" />
+                        Synchronize
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

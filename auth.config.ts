@@ -67,6 +67,10 @@ export default {
                 session.user.emailVerified = token.emailVerified
             }
 
+            if(token.name && session.user){
+                session.user.name = token.name;
+            }
+
             return session;
         },
         async jwt({token}){
@@ -77,6 +81,7 @@ export default {
             token.role = user.role;
 
             token.isPremium = user.premium;
+            token.name = user.name;
 
             token.emailVerified = user.emailVerified ? new Date(user.emailVerified) : null;
             return token;

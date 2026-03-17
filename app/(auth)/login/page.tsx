@@ -65,7 +65,6 @@ function Page() {
                                     control={form.control}
                                     label="Email"
                                     placeholder="you@example.com"
-                                    description={"Enter your email"}
                                 />
                                 <FormInput
                                     type="password"
@@ -73,7 +72,6 @@ function Page() {
                                     control={form.control}
                                     label="Password"
                                     placeholder="••••••••"
-                                    description={"Enter your password"}
                                 />
 
                                 <div className="flex items-center justify-end">

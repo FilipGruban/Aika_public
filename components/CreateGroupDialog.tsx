@@ -61,14 +61,10 @@ function CreateGroupDialog({providers} : {providers: Provider[]}) {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Card className="group flex items-center justify-center min-h-[180px] border-2 border-dashed hover:border-primary/50 hover:bg-accent/50 cursor-pointer transition-all">
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground group-hover:text-foreground transition-colors">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                            <Plus className="w-6 h-6 text-primary" />
-                        </div>
-                        <span className="font-semibold">Create New Group</span>
-                    </div>
-                </Card>
+                <Button size="lg">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Group
+                </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>

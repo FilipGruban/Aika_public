@@ -1,15 +1,11 @@
 import {getCalendarGroup} from "@/lib/calendar";
 import {prisma} from "@/lib/prisma";
 import {Event} from '@prisma/client'
-import {getAppleCredentials, getOAuthToken} from "@/lib/tokens";
-import axiosInstance from "@/lib/axios";
 import {flowProducer} from "@/lib/flowProducer";
-import {createCalendarObject} from "tsdav"
-import {getApplePrincipalUrl} from "@/lib/apple";
-import {decrypt} from "@/lib/encryption";
-import {convertRRuleToMicrosoftRecurrence} from "@/lib/utils";
+import {addAppleEvents, addGoogleEvents, addMicrosoftEvents, deleteEvent} from "@/lib/event";
+import pLimit from "p-limit";
 
-export async function scheduleCalendarSync(groupId: string, userId: string) {
+export async function scheduleCalendarSync(groupId: string, userId: string, trigger : "automatic" | "manual") {
 
     const calendarGroup = await prisma.calendarGroup.findUnique(
         {
@@ -65,23 +61,36 @@ export async function scheduleCalendarSync(groupId: string, userId: string) {
         });
     }
 
+    const syncLog = await prisma.syncLog.create({
+        data:{
+            userId,
+            groupId,
+            triggeredBy: trigger,
+            status: "running"
+        }
+    })
+
     await flowProducer.add({
         name: "calendar-sync",
         queueName: "calendar-sync",
         data: {
             userId,
             groupId,
+            syncLogId: syncLog.id,
         },
         children
     });
-
 }
 
 
-export async function syncCalendarGroup(groupId: string, userId: string) {
+export async function syncCalendarGroup(groupId: string, userId: string, syncLogId: string) {
     const group = await getCalendarGroup(groupId, userId);
 
     if (!group) {
+        return null;
+    }
+
+    if(!group.settings?.syncEnabled) {
         return null;
     }
 
@@ -104,47 +113,175 @@ export async function syncCalendarGroup(groupId: string, userId: string) {
         }
     });
 
-    const googleToAdd = new Map<string, Event[]>();
-    const microsoftToAdd = new Map<string, Event[]>();
-    const appleToAdd = new Map<string, Event[]>();
+    const googleToAdd = new Map<string, {dbCalendarId:string, events: Event[] }>();
+    const microsoftToAdd = new Map<string, {dbCalendarId:string, events: Event[] }>();
+    const appleToAdd = new Map<string, {dbCalendarId:string, events: Event[] }>();
+    const eventsToDelete: Array<{event: Event, reason: 'name_duplicate'}> = [];
 
-    for (const primaryEvent of primaryEvents) {
-        for(const calendar of secondaryCalendars) {
-           if (calendar.events.find((e) => isSameEvent(primaryEvent, e))) continue;
-           switch (calendar.provider){
-               case "google":
-                   push(googleToAdd, calendar.providerCalendarId, primaryEvent);
-                   break;
-               case "apple":
-                   push(appleToAdd, calendar.providerCalendarId, primaryEvent);
-                   break;
-               case "microsoft":
-                   push(microsoftToAdd, calendar.providerCalendarId, primaryEvent);
-                   break;
-           }
-       }
+
+
+        for (const primaryEvent of primaryEvents) {
+            for(const calendar of secondaryCalendars) {
+
+                const matchResult = findMatchingEvent(
+                    primaryEvent,
+                    calendar.events,
+                    group.settings?.nameDuplicationEnabled
+                );
+
+                if (matchResult.exactMatch) continue;
+
+                if (matchResult.nameDuplicate) {
+                    eventsToDelete.push({
+                        event: matchResult.nameDuplicate,
+                        reason: 'name_duplicate'
+                    });
+                }
+
+                switch (calendar.provider){
+                    case "google":
+                        push(googleToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
+                        break;
+                    case "apple":
+                        push(appleToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
+                        break;
+                    case "microsoft":
+                        push(microsoftToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
+                        break;
+                }
+            }
+        }
+
+
+        const limit = pLimit(3);
+
+
+        const deletionResults = await Promise.all(
+            eventsToDelete.map(({ event }) =>
+                limit(() => deleteEvent(userId, event.provider, event.providerCalendarId, event.externalId))
+            )
+        );
+
+        const googleResults = await addGoogleEvents(googleToAdd, userId);
+        const microsoftResults = await addMicrosoftEvents(microsoftToAdd, userId);
+        const appleResults = await addAppleEvents(appleToAdd, userId);
+
+        const logEntries: Array<{
+            action: 'added' | 'deleted' | 'failed';
+            eventTitle: string;
+            sourceCalendarId: string;
+            targetCalendarId: string;
+            error?: string;
+            details?: any;
+        }> = [];
+
+        eventsToDelete.forEach(({ event }, index) => {
+            const result = deletionResults[index];
+
+            if (result.status === 'fulfilled') {
+                logEntries.push({
+                    action: 'deleted',
+                    eventTitle: event.title,
+                    sourceCalendarId: group.primaryCalendar.id,
+                    targetCalendarId: event.calendarId,
+                });
+            } else {
+                logEntries.push({
+                    action: 'failed',
+                    eventTitle: event.title,
+                    sourceCalendarId: group.primaryCalendar.id,
+                    targetCalendarId: event.calendarId,
+                    error: `Delete failed: ${result.error}`,
+                });
+            }
+        });
+
+        [...googleResults.success, ...microsoftResults.success, ...appleResults.success].forEach(item => {
+            logEntries.push({
+                action: 'added',
+                eventTitle: item.eventTitle,
+                sourceCalendarId: group.primaryCalendar.id,
+                targetCalendarId: item.targetCalendarId,
+                details: item.details,
+            });
+        });
+
+        [...googleResults.failed, ...microsoftResults.failed, ...appleResults.failed].forEach(item => {
+            logEntries.push({
+                action: 'failed',
+                eventTitle: item.eventTitle,
+                sourceCalendarId: group.primaryCalendar.id,
+                targetCalendarId: item.targetCalendarId,
+                error: item.error,
+            });
+        });
+
+        await prisma.syncLogEntry.createMany({
+            data: logEntries.map(entry => ({
+                syncLogId: syncLogId,
+                ...entry,
+            }))
+        });
+
+        await prisma.syncLog.update({
+            where: { id: syncLogId },
+            data: {
+                status: logEntries.some(e => e.action === 'failed') ? 'partial' : 'success',
+                eventsAdded: logEntries.filter(e => e.action === 'added').length,
+                eventsDeleted: logEntries.filter(e => e.action === 'deleted').length,
+                eventsFailed: logEntries.filter(e => e.action === 'failed').length,
+            }
+        });
+
+}
+function push(map: Map<string, { dbCalendarId: string, events: Event[] }>, providerCalendarId: string, dbCalendarId: string, event: Event) {
+    if (!map.has(providerCalendarId)) {
+        map.set(providerCalendarId, { dbCalendarId, events: [] });
+    }
+    map.get(providerCalendarId)!.events.push(event);
+}
+function findMatchingEvent(
+    primaryEvent: Event,
+    secondaryEvents: Event[],
+    nameDuplicationEnabled: boolean = true
+): { exactMatch: Event | null, nameDuplicate: Event | null } {
+    let nameDuplicate: Event | null = null;
+
+    for (const secondaryEvent of secondaryEvents) {
+        if (isSameEvent(primaryEvent, secondaryEvent)) {
+            return { exactMatch: secondaryEvent, nameDuplicate: null };
+        }
+
+        if (!nameDuplicationEnabled &&
+            normalizeTitle(primaryEvent.title) === normalizeTitle(secondaryEvent.title)) {
+            nameDuplicate = secondaryEvent;
+        }
     }
 
-    await addGoogleEvents(googleToAdd, userId);
-    await addMicrosoftEvents(microsoftToAdd, userId);
-    await addAppleEvents(appleToAdd, userId);
+    return { exactMatch: null, nameDuplicate };
 }
-function push(map: Map<string, Event[]>, calendarId: string, event: Event) {
-    if (!map.has(calendarId)) {
-        map.set(calendarId, []);
-    }
-    map.get(calendarId)!.push(event);
-}
-function isSameEvent(a : Event, b :Event): boolean {
+
+
+function isSameEvent(a: Event, b: Event): boolean {
     if (a.isAllDay !== b.isAllDay) return false;
 
-    if (a.recurrenceRule && b.recurrenceRule && normalizeTitle(a.title) === normalizeTitle(b.title) && a.isAllDay === b.isAllDay) return true;
+    if (a.recurrenceRule && b.recurrenceRule && normalizeTitle(a.title) === normalizeTitle(b.title)) {
+        return true;
+    }
 
-    if (normalizeTitle(a.title) !== normalizeTitle(b.title)) return false;
+    const titleA = normalizeTitle(a.title);
+    const titleB = normalizeTitle(b.title);
 
-    if (normalizeDateTime(a.start) !== normalizeDateTime(b.start)) return false;
+    if (titleA !== titleB) return false;
 
-    if (normalizeDateTime(a.end) !== normalizeDateTime(b.end)) return false;
+    if (a.isAllDay) {
+        const dateA = new Date(a.start).toISOString().split('T')[0];
+        const dateB = new Date(b.start).toISOString().split('T')[0];
+        return dateA === dateB;
+    } else {
+        if (normalizeDateTime(a.start) !== normalizeDateTime(b.start)) return false;
+        if (normalizeDateTime(a.end) !== normalizeDateTime(b.end)) return false;
+    }
 
     if (a.status === 'cancelled' || b.status === 'cancelled') return false;
 
@@ -162,196 +299,4 @@ function normalizeTitle(title: string): string {
 
 function normalizeDateTime(d: Date): string {
     return d.toISOString();
-}
-function toDateOnly(date: Date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-}
-
-
-async function addGoogleEvents(eventsToAdd : Map<string, Event[]>, userId: string) {
-    try{
-        const accessToken = await getOAuthToken(userId, "google");
-        if (!accessToken) {
-            return null;
-        }
-        await Promise.all(
-            [...eventsToAdd].flatMap(([calendarId, events]) =>
-                events.map(event =>
-                axiosInstance.post(
-                    `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`,
-                    {
-                        summary: event.title,
-                        description: event.description,
-                        location: event.location,
-                        status: event.status,
-                        start: event.isAllDay
-                            ? { date: toDateOnly(event.start) }
-                            : {
-                                dateTime: event.start.toISOString(),
-                                timeZone: 'UTC'
-                            },
-                        end: event.isAllDay
-                            ? { date: toDateOnly(event.end) }
-                            : {
-                                dateTime: event.end.toISOString(),
-                                timeZone: 'UTC'
-                            },
-                        recurrence: event.recurrenceRule ? [event.recurrenceRule] : undefined,
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                    }
-                )
-            )
-        ));
-        return eventsToAdd;
-    }
-    catch(e){
-        console.error(e);
-        return null;
-    }
-}
-
-async function addMicrosoftEvents(eventsToAdd : Map<string, Event[]>, userId: string) {
-    try {
-        const accessToken = await getOAuthToken(userId, "microsoft");
-        if (!accessToken) {
-            return null;
-        }
-
-        await Promise.all(
-            [...eventsToAdd].flatMap(([calendarId, events]) =>
-                events.map(event =>{
-                    axiosInstance.post(`https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events`,{
-                            subject: event.title,
-                            body: {
-                                contentType: "text",
-                                content: event.description || ""
-                            },
-                            start: event.isAllDay
-                                ? {
-                                    dateTime: event.start.toISOString().split('T')[0],
-                                    timeZone: "UTC"
-                                }
-                                : {
-                                    dateTime: event.start.toISOString().replace(/\.\d{3}Z$/, ''),
-                                    timeZone: "UTC"
-                                },
-                            end: event.isAllDay
-                                ? {
-                                    dateTime: event.end.toISOString().split('T')[0],
-                                    timeZone: "UTC"
-                                }
-                                : {
-                                    dateTime: event.end.toISOString().replace(/\.\d{3}Z$/, ''),
-                                    timeZone: "UTC"
-                                },
-                            location: event.location
-                                ? {
-                                    displayName: event.location
-                                }
-                                : undefined,
-                            isAllDay: event.isAllDay,
-                            recurrence: convertRRuleToMicrosoftRecurrence(event.recurrenceRule, event.start),
-                        },
-                        {
-                            headers: {
-                                Authorization: `Bearer ${accessToken}`,
-                                "Content-Type": "application/json",
-                            }
-                        })
-                }
-        ))
-        )
-        return eventsToAdd;
-    }
-    catch(e) {
-        console.error(e);
-        return null;
-    }
-}
-
-async function addAppleEvents(eventsToAdd : Map<string, Event[]>, userId: string) {
-    try {
-        const credentials = await getAppleCredentials(userId);
-        if (!credentials) {
-            return null;
-        }
-        const password = decrypt(credentials.credential)
-        const principalUrl = await getApplePrincipalUrl(credentials.username, password);
-
-        const formatDate = (date: Date, isAllDay: boolean) => {
-            if (isAllDay) {
-                return date.toISOString().split('T')[0].replace(/-/g, '');
-            } else {
-                return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-            }
-        };
-
-        await Promise.all(
-            [...eventsToAdd].flatMap(([calendarId, events]) =>
-                events.map(event => {
-
-                    const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-
-                    const calendarUrl =`https://caldav.icloud.com/${principalUrl}/calendars/${encodeURIComponent(calendarId)}/`
-
-
-                    const icsLines = [
-                        'BEGIN:VCALENDAR',
-                        'VERSION:2.0',
-                        'PRODID:-//Your App//Your App//EN',
-                        'BEGIN:VEVENT',
-                        `UID:${eventId}`,
-                        `DTSTAMP:${formatDate(new Date(), false)}`,
-                        `DTSTART${event.isAllDay ? ';VALUE=DATE' : ''}:${formatDate(event.start, event.isAllDay)}`,
-                        `DTEND${event.isAllDay ? ';VALUE=DATE' : ''}:${formatDate(event.end, event.isAllDay)}`,
-                        `SUMMARY:${event.title}`,
-                    ];
-
-                    if (event.description) {
-                        icsLines.push(`DESCRIPTION:${event.description.replace(/\n/g, '\\n')}`);
-                    }
-
-                    if (event.location) {
-                        icsLines.push(`LOCATION:${event.location}`);
-                    }
-
-                    if (event.recurrenceRule) {
-                        icsLines.push(event.recurrenceRule); // RRULE:FREQ=YEARLY
-                    }
-
-                    icsLines.push(
-                        'STATUS:CONFIRMED',
-                        'SEQUENCE:0',
-                        'END:VEVENT',
-                        'END:VCALENDAR'
-                    );
-                    const icsContent = icsLines.join('\r\n');
-
-                    createCalendarObject({
-                        calendar: {
-                            url: calendarUrl,
-                        },
-                        filename: `${eventId}.ics`,
-                        iCalString: icsContent,
-                        headers: {
-                            Authorization: `Basic ${Buffer.from(`${credentials.username}:${password}`).toString('base64')}`,
-                        },
-                    });
-                })
-        ))
-
-        return eventsToAdd;
-    }
-    catch(e) {
-        console.error(e);
-        return null;
-    }
 }

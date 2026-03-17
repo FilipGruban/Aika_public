@@ -1,6 +1,6 @@
 
 
-export interface Event {
+export interface EventDTO {
     providerEventId: string;
     calendarId: string;
     title: string;
@@ -13,3 +13,15 @@ export interface Event {
     status: string;
 }
 
+export type EventSyncResult = {
+    success: Array<{
+        eventTitle: string;
+        targetCalendarId: string;
+        details?: any;
+    }>;
+    failed: Array<{
+        eventTitle: string;
+        targetCalendarId: string;
+        error: string;
+    }>;
+};

@@ -9,7 +9,7 @@ interface FormInputProps<T extends FieldValues> {
     control: Control<T>;
     label: string;
     type: string;
-    description: string;
+    description?: string;
     placeholder?: string;
     className?: string;
 }

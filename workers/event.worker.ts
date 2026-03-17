@@ -2,14 +2,14 @@ import {Worker} from 'bullmq'
 import {Provider} from "@prisma/client";
 import {getAppleCalendarEvents, getGoogleCalendarEvents, getMicrosoftCalendarEvents} from "@/lib/event";
 import {connection} from "@/lib/redis";
-import {Event} from "@/types/event";
+import {EventDTO} from "@/types/event";
 import {prisma} from "@/lib/prisma";
 
 const eventWorker = new Worker<{ provider: Provider, providerCalendarId: string, userId: string, calendarId: string }>(
     'fetch-events',
     async (job) => {
-
-        let events: Event[] | null = null;
+    try {
+        let events: EventDTO[] | null = null;
         switch (job.data.provider) {
             case "google":
                 events = await getGoogleCalendarEvents(job.data.userId, job.data.providerCalendarId);
@@ -79,6 +79,17 @@ const eventWorker = new Worker<{ provider: Provider, providerCalendarId: string,
         ]);
 
         return {success: true, eventCount: events.length};
+    } catch (error) {
+        console.error(`Failed to fetch events for ${job.data.provider}:`, error);
+
+        return {
+            success: false,
+            eventCount: 0,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            provider: job.data.provider
+        };
+    }
+
     },
     {
         connection,

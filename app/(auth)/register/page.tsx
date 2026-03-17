@@ -63,7 +63,6 @@ function Page() {
                                 control={form.control}
                                 label="Full Name"
                                 placeholder="John Doe"
-                                description={"Enter your full name"}
                             />
                             <FormInput
                                 type="text"
@@ -71,7 +70,6 @@ function Page() {
                                 control={form.control}
                                 label="Email"
                                 placeholder="you@example.com"
-                                description={"We will send you verification email"}
                             />
                             <FormInput
                                 type="password"
@@ -79,7 +77,6 @@ function Page() {
                                 control={form.control}
                                 label="Password"
                                 placeholder="••••••••"
-                                description={"Enter your password"}
                             />
                             <FormInput
                                 type="password"
@@ -87,7 +84,6 @@ function Page() {
                                 control={form.control}
                                 label="Confirm Password"
                                 placeholder="••••••••"
-                                description={"Make sure passwords match"}
                             />
 
                             <div className="pt-2">

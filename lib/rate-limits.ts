@@ -37,6 +37,20 @@ export const rateLimiters = {
         points: 15,
         duration: 60,
     }),
+
+    manualSync: new RateLimiterRedis({
+        storeClient: redis,
+        keyPrefix: 'ratelimit:manual_sync',
+        points: 3,
+        duration: 300,
+    }),
+
+    accountUpdate: new RateLimiterRedis({
+        storeClient: redis,
+        keyPrefix: 'ratelimit:account_update',
+        points: 1,
+        duration: 300,
+    })
 };
 
 export async function checkEmailVerificationLimit(email: string) {
@@ -86,5 +100,39 @@ export async function checkCalendarApiLimit(userId: string, provider: 'apple' | 
             retryAfter: Math.ceil(rejRes.msBeforeNext / 1000),
             message: `Too many requests. Please try again in ${Math.ceil(rejRes.msBeforeNext / 1000)} seconds.`
         };
+    }
+}
+
+export async function checkManualSyncLimit(userId:string){
+    try {
+        const result = await rateLimiters.manualSync.consume(userId);
+        return {
+            success: true,
+            remaining: result.remainingPoints,
+        }
+    }
+    catch (rejRes: any) {
+        return {
+            success: false,
+            retryAfter: Math.ceil(rejRes.msBeforeNext / 1000),
+            message: `Too many sync requests sent. Try again in ${Math.ceil(rejRes.msBeforeNext / 1000 / 60 )} minutes.`
+        }
+    }
+}
+
+export async function checkAccountUpdateLimit(userId:string){
+    try {
+        const result = await rateLimiters.accountUpdate.consume(userId);
+        return {
+            success: true,
+            remaining: result.remainingPoints,
+        }
+    }
+    catch (rejRes: any) {
+        return {
+            success: false,
+            retryAfter: Math.ceil(rejRes.msBeforeNext / 1000),
+            message: `Wait ${Math.ceil(rejRes.msBeforeNext / 1000 / 60 )} minutes before updating account.`
+        }
     }
 }

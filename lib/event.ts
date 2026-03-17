@@ -1,20 +1,22 @@
 import {getAppleCredentials, getOAuthToken} from "@/lib/tokens";
 import axiosInstance from "@/lib/axios";
-import {Event} from "@/types/event";
+import {EventDTO, EventSyncResult} from "@/types/event";
 import {getApplePrincipalUrl} from "@/lib/apple";
 import {decrypt} from "@/lib/encryption";
-import {calendarQuery, DAVNamespaceShort} from "tsdav";
+import {calendarQuery, createCalendarObject, DAVNamespaceShort, deleteObject} from "tsdav";
 import {
     convertAppleRecurrenceToRRule,
     convertGoogleRecurrenceToRRule,
-    convertMicrosoftRecurrenceToRRule
+    convertMicrosoftRecurrenceToRRule, convertRRuleToMicrosoftRecurrence
 } from "@/lib/utils";
 import ICAL from "ical.js";
+import {Event, Provider} from "@prisma/client";
+import pLimit from "p-limit";
 
-export async function getGoogleCalendarEvents(userId : string, calendarId: string) : Promise<Event[] | null> {
+export async function getGoogleCalendarEvents(userId: string, calendarId: string): Promise<EventDTO[] | null> {
     const accessToken = await getOAuthToken(userId, "google");
 
-    if(!accessToken){
+    if (!accessToken) {
         return null;
     }
 
@@ -30,14 +32,14 @@ export async function getGoogleCalendarEvents(userId : string, calendarId: strin
         }
     });
 
-    if(!events.data){
+    if (!events.data) {
         return null;
     }
 
-    return events.data.items.map((event : any) => parseGoogleEvent(event, calendarId));
+    return events.data.items.map((event: any) => parseGoogleEvent(event, calendarId));
 }
 
-function parseGoogleEvent(googleEvent: any, calendarId: string) : Event {
+function parseGoogleEvent(googleEvent: any, calendarId: string): EventDTO {
 
 
     return {
@@ -54,16 +56,15 @@ function parseGoogleEvent(googleEvent: any, calendarId: string) : Event {
     };
 }
 
-export async function getMicrosoftCalendarEvents(userId : string, calendarId: string) {
+export async function getMicrosoftCalendarEvents(userId: string, calendarId: string) {
     const accessToken = await getOAuthToken(userId, "microsoft");
 
-    if(!accessToken){
+    if (!accessToken) {
         return null;
     }
-
     const futureDate = new Date().toISOString();
 
-    const events = await axiosInstance.get(`https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(calendarId)}/events`,{
+    const events = await axiosInstance.get(`https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(calendarId)}/events`, {
         headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
@@ -75,15 +76,15 @@ export async function getMicrosoftCalendarEvents(userId : string, calendarId: st
     })
 
 
-    if(!events.data){
+    if (!events.data) {
         return null;
     }
 
-    return events.data.value.map((event : any) => parseMicrosoftEvent(event, calendarId));
+    return events.data.value.map((event: any) => parseMicrosoftEvent(event, calendarId));
 
 }
 
-function parseMicrosoftEvent(microsoftEvent: any, calendarId: string): Event {
+function parseMicrosoftEvent(microsoftEvent: any, calendarId: string): EventDTO {
 
     const startDateTime = microsoftEvent.start.timeZone === 'UTC'
         ? microsoftEvent.start.dateTime + 'Z'
@@ -111,10 +112,10 @@ function parseMicrosoftEvent(microsoftEvent: any, calendarId: string): Event {
 }
 
 
-export async function getAppleCalendarEvents(userId : string, calendarId: string) {
+export async function getAppleCalendarEvents(userId: string, calendarId: string) {
     const credentials = await getAppleCredentials(userId);
 
-    if(!credentials){
+    if (!credentials) {
         return null;
     }
 
@@ -159,7 +160,7 @@ export async function getAppleCalendarEvents(userId : string, calendarId: string
 export function parseAppleEvents(
     calendarObjects: any[],
     calendarId: string
-): Event[] {
+): EventDTO[] {
     return calendarObjects
         .map(obj => {
             try {
@@ -180,7 +181,32 @@ export function parseAppleEvents(
                 }
 
                 const event = new ICAL.Event(vevent);
+                const isAllDay = event.startDate.isDate;
 
+                let startTime: Date;
+                let endTime: Date;
+
+                if (isAllDay) {
+                    const startDate = event.startDate;
+                    const endDate = event.endDate;
+
+                    startTime = new Date(Date.UTC(
+                        startDate.year,
+                        startDate.month - 1,
+                        startDate.day,
+                        0, 0, 0, 0
+                    ));
+
+                    endTime = new Date(Date.UTC(
+                        endDate.year,
+                        endDate.month - 1,
+                        endDate.day,
+                        0, 0, 0, 0
+                    ));
+                } else {
+                    startTime = event.startDate.toJSDate();
+                    endTime = event.endDate.toJSDate();
+                }
 
                 return {
                     providerEventId: event.uid,
@@ -188,9 +214,9 @@ export function parseAppleEvents(
                     title: event.summary || 'Untitled Event',
                     description: event.description || null,
                     location: event.location || null,
-                    startTime: event.startDate.toJSDate(),
-                    endTime: event.endDate.toJSDate(),
-                    isAllDay: event.startDate.isDate,
+                    startTime: startTime,
+                    endTime: endTime,
+                    isAllDay: isAllDay,
                     recurrenceRule: convertAppleRecurrenceToRRule(vevent) || null,
                     status: 'confirmed',
                 };
@@ -199,5 +225,398 @@ export function parseAppleEvents(
                 return null;
             }
         })
-        .filter((event): event is Event => event !== null);
+        .filter((event): event is EventDTO => event !== null);
+}
+
+function toDateOnly(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+
+
+
+export async function addGoogleEvents(eventsToAdd: Map<string, { dbCalendarId: string, events: Event[] }>, userId: string) : Promise<EventSyncResult> {
+    const result: EventSyncResult = { success: [], failed: [] };
+    try {
+        const accessToken = await getOAuthToken(userId, "google");
+        if (!accessToken) {
+            for (const [_, {events, dbCalendarId}] of eventsToAdd) {
+                events.forEach(event => {
+                    result.failed.push({
+                        eventTitle: event.title,
+                        targetCalendarId: dbCalendarId,
+                        error: 'No access token'
+                    });
+                });
+            }
+        return result;
+        }
+
+        const limit = pLimit(3)
+
+        await Promise.all(
+            [...eventsToAdd].flatMap(([calendarId, {dbCalendarId, events}]) =>
+                events.map(event =>
+                    limit(async ()=>{
+                        try{
+                            await axiosInstance.post(
+                                `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`,
+                                {
+                                    summary: event.title,
+                                    description: event.description,
+                                    location: event.location,
+                                    status: event.status,
+                                    start: event.isAllDay
+                                        ? {date: toDateOnly(event.start)}
+                                        : {
+                                            dateTime: event.start.toISOString(),
+                                            timeZone: 'UTC'
+                                        },
+                                    end: event.isAllDay
+                                        ? {date: toDateOnly(event.end)}
+                                        : {
+                                            dateTime: event.end.toISOString(),
+                                            timeZone: 'UTC'
+                                        },
+                                    recurrence: event.recurrenceRule ? [event.recurrenceRule] : undefined,
+                                },
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${accessToken}`,
+                                    },
+                                }
+                            )
+
+                            result.success.push({
+                                eventTitle: event.title,
+                                targetCalendarId: dbCalendarId,
+                                details: {
+                                    startTime: event.start,
+                                    isAllDay: event.isAllDay,
+                                }
+                            });
+                        }
+                        catch(error){
+                            result.failed.push({
+                                eventTitle: event.title,
+                                targetCalendarId: dbCalendarId,
+                                error: 'Unknown error'
+                            });
+                        }
+                    }
+                    )
+                )
+            ));
+        return result;
+    } catch (e) {
+        console.error(e);
+        for (const [_, {events, dbCalendarId}] of eventsToAdd) {
+            events.forEach(event => {
+                result.failed.push({
+                    eventTitle: event.title,
+                    targetCalendarId: dbCalendarId,
+                    error: 'Unknown error occurred'
+                });
+            });
+        }
+        return result;
+    }
+}
+
+export async function addMicrosoftEvents(eventsToAdd: Map<string, { dbCalendarId: string, events: Event[] }>, userId: string): Promise<EventSyncResult> {
+    const result: EventSyncResult = { success: [], failed: [] };
+    try {
+        const accessToken = await getOAuthToken(userId, "microsoft");
+        if (!accessToken) {
+            for (const [_, {events, dbCalendarId}] of eventsToAdd) {
+                events.forEach(event => {
+                    result.failed.push({
+                        eventTitle: event.title,
+                        targetCalendarId: dbCalendarId,
+                        error: 'No access token'
+                    });
+                });
+            }
+            return result;
+        }
+
+        const limit = pLimit(3)
+
+        await Promise.all(
+            [...eventsToAdd].flatMap(([calendarId, {dbCalendarId, events}]) =>
+                events.map(event =>
+                    limit(async ()=>{
+                        try {
+                            await axiosInstance.post(`https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events`, {
+                                    subject: event.title,
+                                    body: {
+                                        contentType: "text",
+                                        content: event.description || ""
+                                    },
+                                    start: event.isAllDay
+                                        ? {
+                                            dateTime: event.start.toISOString().split('T')[0],
+                                            timeZone: "UTC"
+                                        }
+                                        : {
+                                            dateTime: event.start.toISOString().replace(/\.\d{3}Z$/, ''),
+                                            timeZone: "UTC"
+                                        },
+                                    end: event.isAllDay
+                                        ? {
+                                            dateTime: event.end.toISOString().split('T')[0],
+                                            timeZone: "UTC"
+                                        }
+                                        : {
+                                            dateTime: event.end.toISOString().replace(/\.\d{3}Z$/, ''),
+                                            timeZone: "UTC"
+                                        },
+                                    location: event.location
+                                        ? {
+                                            displayName: event.location
+                                        }
+                                        : undefined,
+                                    isAllDay: event.isAllDay,
+                                    recurrence: convertRRuleToMicrosoftRecurrence(event.recurrenceRule, event.start),
+                                },
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${accessToken}`,
+                                        "Content-Type": "application/json",
+                                    }
+                                })
+
+
+                            result.success.push({
+                                eventTitle: event.title,
+                                targetCalendarId: dbCalendarId,
+                                details: {
+                                    startTime: event.start,
+                                    isAllDay: event.isAllDay,
+                                }
+                            });
+                        }catch(error){
+                            result.failed.push({
+                                eventTitle: event.title,
+                                targetCalendarId: dbCalendarId,
+                                error: 'Unknown error'
+                            });
+                        }}
+                    )
+                ))
+        )
+        return result;
+    } catch (e) {
+        console.error(e);
+        for (const [_, {dbCalendarId, events}] of eventsToAdd) {
+            events.forEach(event => {
+                result.failed.push({
+                    eventTitle: event.title,
+                    targetCalendarId: dbCalendarId,
+                    error: 'Unknown error occurred'
+                });
+            });
+        }
+        return result;
+    }
+}
+
+export async function addAppleEvents(eventsToAdd: Map<string, { dbCalendarId: string, events: Event[] }>, userId: string) : Promise<EventSyncResult> {
+    const result: EventSyncResult = { success: [], failed: [] };
+    try {
+        const credentials = await getAppleCredentials(userId);
+        if (!credentials) {
+            for (const [_, {events, dbCalendarId}] of eventsToAdd) {
+                events.forEach(event => {
+                    result.failed.push({
+                        eventTitle: event.title,
+                        targetCalendarId: dbCalendarId,
+                        error: 'Invalid apple credentials'
+                    });
+                });
+            }
+            return result;
+        }
+        const password = decrypt(credentials.credential)
+        const principalUrl = await getApplePrincipalUrl(credentials.username, password);
+
+        const formatDate = (date: Date, isAllDay: boolean) => {
+            if (isAllDay) {
+                return date.toISOString().split('T')[0].replace(/-/g, '');
+            } else {
+                return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+            }
+        };
+
+        const limit = pLimit(3)
+
+        await Promise.all(
+            [...eventsToAdd].flatMap(([calendarId, {dbCalendarId, events}]) =>
+                events.map(event => {
+                    limit(async ()=>{
+                        try {
+                            const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+                            const calendarUrl = `https://caldav.icloud.com/${principalUrl}/calendars/${encodeURIComponent(calendarId)}/`
+
+
+                            const icsLines = [
+                                'BEGIN:VCALENDAR',
+                                'VERSION:2.0',
+                                'PRODID:-//Your App//Your App//EN',
+                                'BEGIN:VEVENT',
+                                `UID:${eventId}`,
+                                `DTSTAMP:${formatDate(new Date(), false)}`,
+                                `DTSTART${event.isAllDay ? ';VALUE=DATE' : ''}:${formatDate(event.start, event.isAllDay)}`,
+                                `DTEND${event.isAllDay ? ';VALUE=DATE' : ''}:${formatDate(event.end, event.isAllDay)}`,
+                                `SUMMARY:${event.title}`,
+                            ];
+
+                            if (event.description) {
+                                icsLines.push(`DESCRIPTION:${event.description.replace(/\n/g, '\\n')}`);
+                            }
+
+                            if (event.location) {
+                                icsLines.push(`LOCATION:${event.location}`);
+                            }
+
+                            if (event.recurrenceRule) {
+                                icsLines.push(event.recurrenceRule); // RRULE:FREQ=YEARLY
+                            }
+
+                            icsLines.push(
+                                'STATUS:CONFIRMED',
+                                'SEQUENCE:0',
+                                'END:VEVENT',
+                                'END:VCALENDAR'
+                            );
+                            const icsContent = icsLines.join('\r\n');
+
+                            await createCalendarObject({
+                                calendar: {
+                                    url: calendarUrl,
+                                },
+                                filename: `${eventId}.ics`,
+                                iCalString: icsContent,
+                                headers: {
+                                    Authorization: `Basic ${Buffer.from(`${credentials.username}:${password}`).toString('base64')}`,
+                                },
+                            });
+
+                            result.success.push({
+                                eventTitle: event.title,
+                                targetCalendarId: dbCalendarId,
+                                details: {
+                                    startTime: event.start,
+                                    isAllDay: event.isAllDay,
+                                }
+                            });
+                        }
+                        catch(error){
+                            result.failed.push({
+                                eventTitle: event.title,
+                                targetCalendarId: dbCalendarId,
+                                error: 'Unknown error'
+                            });
+                        }
+                    })
+                })
+            ))
+
+        return result;
+    } catch (e) {
+        console.error(e);
+        for (const [_, {dbCalendarId, events}] of eventsToAdd) {
+            events.forEach(event => {
+                result.failed.push({
+                    eventTitle: event.title,
+                    targetCalendarId: dbCalendarId,
+                    error: 'Unknown error occurred'
+                });
+            });
+        }
+        return result;
+    }
+}
+
+
+export async function deleteEvent(userId: string, provider: Provider, calendarId: string, eventId: string) {
+    try {
+        switch (provider) {
+            case 'google':
+                await deleteGoogleEvent(userId, calendarId, eventId);
+                break;
+            case 'microsoft':
+                await deleteMicrosoftEvent(userId, calendarId, eventId);
+                break;
+            case 'apple':
+                await deleteAppleEvent(userId, calendarId, eventId);
+                break;
+        }
+        return {status : "fulfilled"};
+    }
+    catch (error) {
+        return {status : "failed", error: error || "Something went wrong" };
+    }
+}
+
+
+async function deleteGoogleEvent(userId: string, calendarId: string, eventId: string) {
+    const accessToken = await getOAuthToken(userId, "google");
+
+    if (!accessToken) {
+        return null;
+    }
+
+    await axiosInstance.delete(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+    });
+
+}
+
+async function deleteMicrosoftEvent(userId: string, calendarId: string, eventId: string) {
+    const accessToken = await getOAuthToken(userId, "microsoft");
+
+    if (!accessToken) {
+        return null;
+    }
+
+    await axiosInstance.delete(
+        `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events/${eventId}`,
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            }
+        }
+
+    );
+}
+
+async function deleteAppleEvent(userId: string, calendarId: string, eventId: string) {
+    const credentials = await getAppleCredentials(userId);
+
+    if (!credentials) {
+        return null;
+    }
+
+    const password = decrypt(credentials.credential)
+
+    const principalUrl = await getApplePrincipalUrl(credentials.username, password);
+
+    const eventUrl = `https://caldav.icloud.com/${principalUrl}/calendars/${encodeURIComponent(calendarId)}/${eventId}.ics`;
+
+    await deleteObject({
+        url: eventUrl,
+        headers: {
+            authorization: 'Basic ' + Buffer.from(`${credentials.username}:${password}`).toString('base64'),
+        },
+    });
 }

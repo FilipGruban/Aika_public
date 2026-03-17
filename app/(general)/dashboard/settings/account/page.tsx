@@ -1,9 +1,16 @@
 import React from 'react';
+import AccountInformation from "@/components/AccountInformation";
+import {getCurrentUser} from "@/lib/authUser";
 
-function Page() {
+async function Page() {
+    const user = await getCurrentUser();
+
+    if (!user) return;
+
     return (
-        <div className={''}>
-            uwu
+        <div className={'flex flex-col gap-4 w-full'}>
+            <AccountInformation username={user.name} email={user.email} />
+
         </div>
     );
 }

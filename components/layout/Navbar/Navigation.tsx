@@ -14,7 +14,7 @@ function Navigation() {
         <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
                 <NavigationMenuItem>
-                    <NavigationMenuTrigger>Calendars</NavigationMenuTrigger>
+                    <NavigationMenuTrigger  className={"bg-transparent hover:bg-transparent data-[state=open]:hover:bg-transparent focus:bg-transparent"} >Calendars</NavigationMenuTrigger>
                     <NavigationMenuContent>
                         <ul className={"flex flex-col w-[250px] gap-4"}>
                             <ListItem
@@ -29,7 +29,7 @@ function Navigation() {
                     </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                    <NavigationMenuTrigger>Premium</NavigationMenuTrigger>
+                    <NavigationMenuTrigger className={"bg-transparent hover:bg-transparent data-[state=open]:hover:bg-transparent focus:bg-transparent"}>Premium</NavigationMenuTrigger>
                     <NavigationMenuContent>
                         <ul className={"flex flex-col w-[250px] gap-4"}>
                             <ListItem
@@ -44,7 +44,7 @@ function Navigation() {
                     </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                    <NavigationMenuTrigger>Settings</NavigationMenuTrigger>
+                    <NavigationMenuTrigger className={"bg-transparent hover:bg-transparent data-[state=open]:hover:bg-transparent focus:bg-transparent"}>Settings</NavigationMenuTrigger>
                     <NavigationMenuContent>
                         <ul className={"flex flex-col w-[250px] gap-4"}>
                             <ListItem

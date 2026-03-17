@@ -10,7 +10,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 fetcher,
                 revalidateOnFocus: true,
                 shouldRetryOnError: true,
-                errorRetryInterval: 5000
+                errorRetryInterval: 5000,
+                revalidateOnMount: true,
             }}
         >
             {children}

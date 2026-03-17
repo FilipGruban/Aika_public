@@ -313,6 +313,7 @@ export async function getCalendarGroup(groupId: string, userId: string) {
             include:{
                 primaryCalendar: true,
                 calendars: true,
+                settings: true
             }
         })
     }

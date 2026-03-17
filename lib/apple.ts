@@ -4,7 +4,7 @@ import {ProviderCalendarResponse} from "@/types/calendar";
 import {xml2json} from "xml-js";
 import {AccessRole} from "@prisma/client";
 import ICAL from 'ical.js';
-import {Event} from "@/types/event";
+import {EventDTO} from "@/types/event";
 
 export async function getApplePrincipalUrl(username: string, appPassword: string): Promise<string> {
     const authHeader = "Basic " + Buffer.from(`${username}:${appPassword}`).toString("base64");

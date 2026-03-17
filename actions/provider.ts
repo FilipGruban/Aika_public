@@ -21,6 +21,12 @@ export async function unlinkProvider(provider: Provider){
                     }
                 }
             }),
+            prisma.event.deleteMany({
+               where: {
+                   provider,
+                   userId: user.id,
+               }
+            }),
             prisma.calendar.deleteMany({
                 where: {
                     provider,

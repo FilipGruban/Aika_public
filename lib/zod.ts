@@ -43,6 +43,16 @@ export const signUpSchema = signInSchema.extend({
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
+export const updateProfileSchema = z.object({
+    name: z.string()
+        .min(4, "Name must be at least 4 characters long")
+        .max(40, "Name must be less than 40 characters long")
+        .regex(/^[A-Za-z]+(?:\s+[A-Za-z]+)+$/, "Please enter your full name (first and last)")
+        .nonempty("Name is required"),
+})
+
+export type UpdateProfileType = z.infer<typeof updateProfileSchema>;
+
 export const requestResetPasswordSchema = signInSchema.pick({email: true})
 export type RequestResetPasswordInput = z.infer<typeof requestResetPasswordSchema>;
 
@@ -101,3 +111,21 @@ export const addSecondaryCalendarsSchema = z.object({
 });
 
 export type AddSecondaryCalendarsInput = z.infer<typeof addSecondaryCalendarsSchema>;
+
+
+export const calendarGroupSettingsSchema = z.object({
+    syncEnabled: z.boolean(),
+    nameDuplicationEnabled: z.boolean(),
+    syncFrequencyMinutes: z.enum(["15", "30", "60", "120"]),
+});
+
+export type CalendarGroupSettingsInput = z.infer<typeof calendarGroupSettingsSchema>;
+
+export const createDeleteGroupSchema = (groupName: string) =>
+    z.object({
+        confirmName: z.string().refine((val) => val === groupName, {
+            message: "Group name does not match",
+        }),
+    });
+
+export type DeleteGroupInput = z.infer<ReturnType<typeof createDeleteGroupSchema>>;

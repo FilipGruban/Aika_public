@@ -25,11 +25,11 @@ model User {
 
   accounts            Account[]
   verificationTokens  VerificationToken[]
-  logs                ChangeLog[]
   passwordResetTokens PasswordResetToken[]
   Calendar            Calendar[]
   Notification        Notification[]
   CalendarGroup       CalendarGroup[]
+  syncLogs            SyncLog[]
 
   @@map("users")
 }
@@ -101,10 +101,25 @@ model CalendarGroup {
 
   calendars Calendar[] @relation("GroupCalendars")
 
-  primaryCalendarId String   @unique @map("primary_calendar_id")
-  primaryCalendar   Calendar @relation("PrimaryCalendar", fields: [primaryCalendarId], references: [id])
+  primaryCalendarId String                 @unique @map("primary_calendar_id")
+  primaryCalendar   Calendar               @relation("PrimaryCalendar", fields: [primaryCalendarId], references: [id])
+  settings          CalendarGroupSettings?
+  syncLogs          SyncLog[]
 
   @@map("calendar_groups")
+}
+
+model CalendarGroupSettings {
+  id String @id @default(cuid())
+
+  syncEnabled            Boolean @default(true)
+  nameDuplicationEnabled Boolean @default(true)
+  syncFrequencyMinutes   String  @default("60")
+
+  groupId String        @unique @map("group_id")
+  group   CalendarGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_group_settings")
 }
 
 model Calendar {
@@ -118,17 +133,19 @@ model Calendar {
   createdAt          DateTime   @default(now()) @map("created_at")
   updatedAt          DateTime   @updatedAt @map("updated_at")
 
-  User      User        @relation(fields: [userId], references: [id])
-  userId    String      @map("user_id")
+  User      User    @relation(fields: [userId], references: [id])
+  userId    String  @map("user_id")
   events    Event[]
-  ChangeLog ChangeLog[]
-  account   Account     @relation(fields: [accountId], references: [id])
-  accountId String      @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id])
+  accountId String  @map("account_id")
 
   group   CalendarGroup? @relation("GroupCalendars", fields: [groupId], references: [id])
   groupId String?        @map("group_id")
 
   primaryOf CalendarGroup? @relation("PrimaryCalendar")
+
+  sourceSyncEntries SyncLogEntry[] @relation("SourceCalendar")
+  targetSyncEntries SyncLogEntry[] @relation("TargetCalendar")
 
   @@map("calendars")
 }
@@ -158,25 +175,58 @@ model Event {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
   calendar   Calendar? @relation(fields: [calendarId], references: [id])
-  calendarId String?   @map("calendar_id")
+  calendarId String    @map("calendar_id")
 
   @@unique([userId, provider, externalId])
   @@index([userId, providerCalendarId])
   @@map("events")
 }
 
-model ChangeLog {
-  id         Int       @id @default(autoincrement())
-  type       String
-  action     String
-  details    String?
-  user       User?     @relation(fields: [userId], references: [id])
-  userId     String?   @map("user_id")
-  calendar   Calendar? @relation(fields: [calendarId], references: [id])
-  calendarId String?   @map("calendar_id")
-  createdAt  DateTime  @default(now()) @map("created_at")
+model SyncLog {
+  id          String @id @default(cuid())
+  groupId     String @map("group_id")
+  triggeredBy String @map("triggered_by")
+  status      String
 
-  @@map("change_logs")
+  eventsAdded   Int @default(0) @map("events_added")
+  eventsDeleted Int @default(0) @map("events_deleted")
+  eventsFailed  Int @default(0) @map("events_failed")
+
+  error String? @db.Text
+
+  userId String        @map("user_id")
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group  CalendarGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  entries SyncLogEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([groupId, createdAt])
+  @@map("sync_logs")
+}
+
+model SyncLogEntry {
+  id        String @id @default(cuid())
+  syncLogId String @map("sync_log_id")
+
+  action     String
+  eventTitle String @map("event_title")
+
+  sourceCalendarId String   @map("source_calendar_id")
+  sourceCalendar   Calendar @relation("SourceCalendar", fields: [sourceCalendarId], references: [id], onDelete: Cascade)
+
+  targetCalendarId String   @map("target_calendar_id")
+  targetCalendar   Calendar @relation("TargetCalendar", fields: [targetCalendarId], references: [id], onDelete: Cascade)
+
+  error   String? @db.Text
+  details Json?
+
+  syncLog   SyncLog  @relation(fields: [syncLogId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([syncLogId])
+  @@map("sync_log_entries")
 }
 
 model Notification {

@@ -66,7 +66,10 @@ export async function GET(req: NextRequest) {
                 Authorization: `Bearer ${tokenData.access_token}`
             }
         })
+
         const userData = userRes.data;
+
+        console.log(userData);
 
         const connectedAccount = await prisma.account.findUnique({
             where: {

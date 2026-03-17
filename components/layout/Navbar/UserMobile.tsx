@@ -16,7 +16,6 @@ function UserMobile({user}: {user: UserType}) {
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger>
                     <Avatar className={"h-10 w-10 cursor-pointer"}>
-                        <AvatarImage src="/user.svg" alt="user avatar" />
                         <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                     </Avatar>
                 </PopoverTrigger>

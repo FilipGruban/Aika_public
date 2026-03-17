@@ -41,8 +41,8 @@ function Page() {
     return (
         <div className="relative z-10 w-full max-w-md p-4">
             <Card
-                className="w-full space-y-2 p-8 rounded-2xl border border-border shadow-xl bg-card/90 backdrop-blur-md">
-                <CardHeader className="text-center space-y-1">
+                className="w-full p-8 rounded-2xl border border-border shadow-xl bg-card/90 backdrop-blur-md">
+                <CardHeader className="text-center ">
                     <CardTitle className="text-2xl font-semibold tracking-tight">
                         Password Reset
                     </CardTitle>
@@ -51,14 +51,13 @@ function Page() {
                     </p>
                 </CardHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handlePasswordReset)} className="space-y-5">
+                    <form onSubmit={form.handleSubmit(handlePasswordReset)} className="space-y-3">
                         <FormInput
                             type={"text"}
                             name="email"
                             control={form.control}
                             label="Email Address"
                             placeholder="you@example.com"
-                            description="We'll send you recovery email."
                         />
                         <Button
                             disabled={form.formState.isSubmitting}
@@ -70,7 +69,7 @@ function Page() {
                         </Button>
                     </form>
                 </Form>
-                <div className={"flex items-center flex-col gap-4 border-t border-border pt-6"}>
+                <div className={"flex items-center flex-col gap-2 border-t border-border pt-3"}>
                     <div className="text-center text-sm text-muted-foreground">
                         Don’t have an account?{" "}
                         <Link href="/register" className="font-medium text-primary hover:underline">
