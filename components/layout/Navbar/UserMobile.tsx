@@ -31,7 +31,7 @@ function UserMobile({user}: {user: UserType}) {
                                 <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/calendars/about"}>About Calendars</Link>
                             </LinkGroup>
                             <LinkGroup title={"Premium"} icon={Crown}>
-                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/premium"}>Buy Premium</Link>
+                                <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/premium/buy-premium"}>Buy Premium</Link>
                                 <Link className={"text-md leading-none"} onClick={() =>setOpen(false)} href={"/dashboard/premium/about"}>About Premium</Link>
                             </LinkGroup>
                             <LinkGroup title={"Settings"} icon={Settings}>

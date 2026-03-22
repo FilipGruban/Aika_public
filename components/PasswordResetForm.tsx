@@ -7,7 +7,7 @@ import {Card, CardHeader, CardTitle} from "@/components/ui/card";
 import {Form} from "@/components/ui/form";
 import FormInput from "@/components/FormInput";
 import {Button} from "@/components/ui/button";
-import {resetPassword} from "@/actions/reset-password";
+import {resetPassword} from "@/actions/password";
 import {toast} from "sonner";
 import {useRouter} from "next/navigation";
 
@@ -23,7 +23,7 @@ function PasswordResetForm({userId, token} : {userId: string, token: string}) {
 
     async function handlePasswordReset({password} : {password: string}) {
         try {
-            const res = await resetPassword(password, userId, token);
+            const res = await password(password, userId, token);
 
             if (!res.success){
                 toast.error(res.message)

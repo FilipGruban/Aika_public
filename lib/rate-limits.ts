@@ -50,6 +50,13 @@ export const rateLimiters = {
         keyPrefix: 'ratelimit:account_update',
         points: 1,
         duration: 300,
+    }),
+
+    passwordChange: new RateLimiterRedis({
+        storeClient: redis,
+        keyPrefix: 'ratelimit:password_change',
+        points: 1,
+        duration: 3600,
     })
 };
 
@@ -133,6 +140,23 @@ export async function checkAccountUpdateLimit(userId:string){
             success: false,
             retryAfter: Math.ceil(rejRes.msBeforeNext / 1000),
             message: `Wait ${Math.ceil(rejRes.msBeforeNext / 1000 / 60 )} minutes before updating account.`
+        }
+    }
+}
+
+export async function checkPasswordChangeLimit(userId:string){
+    try {
+        const result = await rateLimiters.passwordChange.consume(userId);
+        return {
+            success: true,
+            remaining: result.remainingPoints,
+        }
+    }
+    catch (rejRes: any) {
+        return {
+            success: false,
+            retryAfter: Math.ceil(rejRes.msBeforeNext / 1000),
+            message: `Wait ${Math.ceil(rejRes.msBeforeNext / 1000 / 60 )} minutes before changing password.`
         }
     }
 }

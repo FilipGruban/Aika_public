@@ -20,27 +20,36 @@ export async function getGoogleCalendarEvents(userId: string, calendarId: string
         return null;
     }
 
-    const now = new Date().toISOString();
     const events = await axiosInstance.get(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
         headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
         },
         params: {
-            timeMin: now,
-            maxResults: 250
+            maxResults: 250,
+            singleEvents: false,
         }
     });
 
     if (!events.data) {
         return null;
     }
+    const now = new Date();
+    const filteredEvents = events.data.items.filter((event: any) => {
+        // Keep all recurring events
+        if (event.recurrence) {
+            return true;
+        }
 
-    return events.data.items.map((event: any) => parseGoogleEvent(event, calendarId));
+        // For non-recurring, only keep future events
+        const eventEnd = new Date(event.end?.dateTime || event.end?.date);
+        return eventEnd >= now;
+    });
+
+    return filteredEvents.map((event: any) => parseGoogleEvent(event, calendarId));
 }
 
 function parseGoogleEvent(googleEvent: any, calendarId: string): EventDTO {
-
 
     return {
         providerEventId: googleEvent.id,
@@ -161,6 +170,7 @@ export function parseAppleEvents(
     calendarObjects: any[],
     calendarId: string
 ): EventDTO[] {
+    const now = new Date();
     return calendarObjects
         .map(obj => {
             try {
@@ -225,7 +235,13 @@ export function parseAppleEvents(
                 return null;
             }
         })
-        .filter((event): event is EventDTO => event !== null);
+        .filter((event): event is EventDTO => event !== null)
+        .filter(event => {
+            if (event.recurrenceRule) {
+                return true;
+            }
+            return new Date(event.endTime) >= now;
+        });
 }
 
 function toDateOnly(date: Date) {
@@ -457,7 +473,7 @@ export async function addAppleEvents(eventsToAdd: Map<string, { dbCalendarId: st
 
         await Promise.all(
             [...eventsToAdd].flatMap(([calendarId, {dbCalendarId, events}]) =>
-                events.map(event => {
+                events.map(event =>
                     limit(async ()=>{
                         try {
                             const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
@@ -525,7 +541,7 @@ export async function addAppleEvents(eventsToAdd: Map<string, { dbCalendarId: st
                             });
                         }
                     })
-                })
+                )
             ))
 
         return result;

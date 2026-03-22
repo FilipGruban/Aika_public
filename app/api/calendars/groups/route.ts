@@ -16,6 +16,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({message: "Unauthorized"}, {status: 401});
         }
 
+
+        const groups = await prisma.calendarGroup.findMany({
+            where: {
+                userId: user.id,
+            }
+        });
+
+        if (groups.length >= 1 && !user.premium) {
+            return NextResponse.json({message: "Buy premium to create another caledar group"}, {status: 400})
+        }
+
         const data = createCalendarGroupSchema.safeParse((await req.json()));
 
         if (!data.success) {

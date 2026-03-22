@@ -13,7 +13,6 @@ import {toast} from "sonner";
 
 const SYNC_FREQUENCY_OPTIONS = [
     {label: "Every 15 minutes", value: "15"},
-    {label: "Every 30 minutes", value: "30"},
     {label: "Every hour", value: "60"},
     {label: "Every 2 hours", value: "120"},
 ] as const;
@@ -23,9 +22,10 @@ interface GroupPageSettingsProps {
     syncEnabled?: boolean;
     nameDuplicationEnabled?: boolean;
     syncFrequencyMinutes?: string;
+    isPremium: Date | null;
 }
 
-function GroupPageSettings({nameDuplicationEnabled, syncEnabled, syncFrequencyMinutes, groupId}: GroupPageSettingsProps) {
+function GroupPageSettings({nameDuplicationEnabled, syncEnabled, syncFrequencyMinutes, groupId, isPremium}: GroupPageSettingsProps) {
 
 
     const form = useForm<CalendarGroupSettingsInput>({
@@ -33,7 +33,7 @@ function GroupPageSettings({nameDuplicationEnabled, syncEnabled, syncFrequencyMi
         defaultValues: {
             syncEnabled: syncEnabled,
             nameDuplicationEnabled: nameDuplicationEnabled,
-            syncFrequencyMinutes: syncFrequencyMinutes?.toString() as "15" | "30" | "60" | "120"
+            syncFrequencyMinutes: syncFrequencyMinutes?.toString() as "15" | "60" | "120"
         },
     });
 
@@ -122,11 +122,23 @@ function GroupPageSettings({nameDuplicationEnabled, syncEnabled, syncFrequencyMi
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {SYNC_FREQUENCY_OPTIONS.map((option) => (
-                                            <SelectItem key={option.value} value={option.value}>
-                                                {option.label}
-                                            </SelectItem>
-                                        ))}
+                                        {SYNC_FREQUENCY_OPTIONS.map((option) => {
+                                            const isDisabled = option.value === "15" && !isPremium;
+                                            return (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                    disabled={isDisabled}
+                                                >
+                                                    {option.label}
+                                                    {isDisabled && (
+                                                        <span className="text-xs text-muted-foreground ml-2">
+                                                            (Premium)
+                                                        </span>
+                                                    )}
+                                                </SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage/>

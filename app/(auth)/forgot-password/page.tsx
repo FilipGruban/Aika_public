@@ -9,7 +9,7 @@ import {useForm} from "react-hook-form";
 import {RequestResetPasswordInput, requestResetPasswordSchema} from "@/lib/zod";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {toast} from "sonner";
-import {requestPasswordReset} from "@/actions/reset-password";
+import {requestPasswordReset} from "@/actions/password";
 
 function Page() {
     const form = useForm<RequestResetPasswordInput>({

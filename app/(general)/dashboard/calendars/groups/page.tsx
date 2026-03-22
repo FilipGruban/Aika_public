@@ -18,6 +18,9 @@ async function Page() {
         getUsersCalendars(user.id)
     ])
 
+    const canCreateGroup = user.premium || userCalendarGroups.length < 1;
+    const showCreateButton = providers.length > 0 && canCreateGroup;
+
     return (
         <div className="min-h-screen p-8 max-w-7xl mx-auto">
             <div className="flex items-center sm:flex-row gap-4 flex-col justify-between mb-8">
@@ -27,10 +30,22 @@ async function Page() {
                         Manage automatic event synchronization across calendars
                     </p>
                 </div>
-                {providers.length > 0 && userCalendarGroups.length > 0 && (
+                {showCreateButton && userCalendarGroups.length > 0 && (
                     <CreateGroupDialog providers={providers} />
                 )}
             </div>
+
+            {!canCreateGroup && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-amber-900">
+                        You've reached the limit of 1 calendar group on the free plan.{' '}
+                        <Link href="/dashboard/premium" className="font-medium underline">
+                            Upgrade to Premium
+                        </Link>{' '}
+                        for unlimited groups.
+                    </p>
+                </div>
+            )}
 
             {userCalendarGroups.length === 0 ? (
                 <div className="flex items-center justify-center py-20">

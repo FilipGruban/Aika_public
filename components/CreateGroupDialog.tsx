@@ -8,7 +8,6 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog";
 import { Plus} from "lucide-react";
-import {Card} from "@/components/ui/card";
 import {useForm} from "react-hook-form";
 import {Button} from "@/components/ui/button";
 import {Form} from "@/components/ui/form";

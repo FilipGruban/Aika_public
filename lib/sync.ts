@@ -117,41 +117,48 @@ export async function syncCalendarGroup(groupId: string, userId: string, syncLog
     const microsoftToAdd = new Map<string, {dbCalendarId:string, events: Event[] }>();
     const appleToAdd = new Map<string, {dbCalendarId:string, events: Event[] }>();
     const eventsToDelete: Array<{event: Event, reason: 'name_duplicate'}> = [];
+    const markedForDeletion = new Set<string>();
 
+    for (const primaryEvent of primaryEvents) {
+        for(const calendar of secondaryCalendars) {
+            const matchResult = findMatchingEvent(
+                primaryEvent,
+                calendar.events,
+                group.settings?.nameDuplicationEnabled
+            );
 
+            if (matchResult.exactMatch) continue;
 
-        for (const primaryEvent of primaryEvents) {
-            for(const calendar of secondaryCalendars) {
+            for (const duplicate of matchResult.nameDuplicates) {
+                const isExactMatchForAnyPrimary = primaryEvents.some(pe => {
+                    const tempMatch = findMatchingEvent(pe, [duplicate], true);
+                    return tempMatch.exactMatch !== null;
+                });
 
-                const matchResult = findMatchingEvent(
-                    primaryEvent,
-                    calendar.events,
-                    group.settings?.nameDuplicationEnabled
-                );
+                if (isExactMatchForAnyPrimary) continue;
 
-                if (matchResult.exactMatch) continue;
-
-                if (matchResult.nameDuplicate) {
+                if (!markedForDeletion.has(duplicate.id)) {
+                    markedForDeletion.add(duplicate.id);
                     eventsToDelete.push({
-                        event: matchResult.nameDuplicate,
+                        event: duplicate,
                         reason: 'name_duplicate'
                     });
                 }
+            }
 
-                switch (calendar.provider){
-                    case "google":
-                        push(googleToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
-                        break;
-                    case "apple":
-                        push(appleToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
-                        break;
-                    case "microsoft":
-                        push(microsoftToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
-                        break;
-                }
+            switch (calendar.provider){
+                case "google":
+                    push(googleToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
+                    break;
+                case "apple":
+                    push(appleToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
+                    break;
+                case "microsoft":
+                    push(microsoftToAdd, calendar.providerCalendarId, calendar.id, primaryEvent);
+                    break;
             }
         }
-
+    }
 
         const limit = pLimit(3);
 
@@ -244,46 +251,50 @@ function findMatchingEvent(
     primaryEvent: Event,
     secondaryEvents: Event[],
     nameDuplicationEnabled: boolean = true
-): { exactMatch: Event | null, nameDuplicate: Event | null } {
-    let nameDuplicate: Event | null = null;
+): { exactMatch: Event | null, nameDuplicates: Event[]} {
+    const nameDuplicates: Event[] = [];
 
     for (const secondaryEvent of secondaryEvents) {
         if (isSameEvent(primaryEvent, secondaryEvent)) {
-            return { exactMatch: secondaryEvent, nameDuplicate: null };
+            return { exactMatch: secondaryEvent, nameDuplicates: [] };
         }
 
         if (!nameDuplicationEnabled &&
             normalizeTitle(primaryEvent.title) === normalizeTitle(secondaryEvent.title)) {
-            nameDuplicate = secondaryEvent;
+            nameDuplicates.push(secondaryEvent);
         }
     }
 
-    return { exactMatch: null, nameDuplicate };
+    return { exactMatch: null, nameDuplicates };
 }
 
 
 function isSameEvent(a: Event, b: Event): boolean {
-    if (a.isAllDay !== b.isAllDay) return false;
-
-    if (a.recurrenceRule && b.recurrenceRule && normalizeTitle(a.title) === normalizeTitle(b.title)) {
-        return true;
-    }
-
     const titleA = normalizeTitle(a.title);
     const titleB = normalizeTitle(b.title);
 
     if (titleA !== titleB) return false;
 
+    if (a.recurrenceRule && b.recurrenceRule) {
+        const freqA = a.recurrenceRule.match(/FREQ=(\w+)/)?.[1];
+        const freqB = b.recurrenceRule.match(/FREQ=(\w+)/)?.[1];
+        return freqA === freqB;
+    }
+
+    if (a.recurrenceRule || b.recurrenceRule) {
+        return false;
+    }
+
+    if (a.isAllDay !== b.isAllDay) return false;
+
     if (a.isAllDay) {
         const dateA = new Date(a.start).toISOString().split('T')[0];
         const dateB = new Date(b.start).toISOString().split('T')[0];
         return dateA === dateB;
-    } else {
-        if (normalizeDateTime(a.start) !== normalizeDateTime(b.start)) return false;
-        if (normalizeDateTime(a.end) !== normalizeDateTime(b.end)) return false;
     }
 
-    if (a.status === 'cancelled' || b.status === 'cancelled') return false;
+    if (normalizeDateTime(a.start) !== normalizeDateTime(b.start)) return false;
+    if (normalizeDateTime(a.end) !== normalizeDateTime(b.end)) return false;
 
     return true;
 }

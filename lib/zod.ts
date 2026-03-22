@@ -7,7 +7,7 @@ export const userSchema = z.object({
     name: z.string(),
     email: z.string().email(),
     role: z.nativeEnum(Role),
-    isPremium: z.boolean().default(false),
+    premium: z.union([z.string().datetime(), z.date()]).optional().nullable().transform(val => (val ? new Date(val) : null)),
     emailVerified: z.union([z.string().datetime(), z.date()])
         .optional()
         .transform(val => (val === undefined ? undefined : val ? new Date(val) : null)),
@@ -70,6 +70,20 @@ export const resetPasswordSchema = signInSchema.pick({
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 
+export const changePasswordSchema = signInSchema.pick({
+    password: true,
+}).extend({
+    currentPassword: z.string(),
+    confirmPassword: z.string()
+        .min(1, "Please confirm your password"),
+
+}).refine((data) => data.password === data.confirmPassword,
+    {
+        path: ["confirmPassword"],
+        message: "Passwords do not match",
+    })
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 
 export const appleIdSchema = z.object({
     email: z.string()
@@ -116,7 +130,7 @@ export type AddSecondaryCalendarsInput = z.infer<typeof addSecondaryCalendarsSch
 export const calendarGroupSettingsSchema = z.object({
     syncEnabled: z.boolean(),
     nameDuplicationEnabled: z.boolean(),
-    syncFrequencyMinutes: z.enum(["15", "30", "60", "120"]),
+    syncFrequencyMinutes: z.enum(["15", "60", "120"]),
 });
 
 export type CalendarGroupSettingsInput = z.infer<typeof calendarGroupSettingsSchema>;

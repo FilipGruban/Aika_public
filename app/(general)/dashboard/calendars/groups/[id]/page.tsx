@@ -54,7 +54,7 @@ async function Page({ params }: { params: Promise<{ id: string }>}) {
                     <GroupPageSecondaryCalendars calendars={calendarClient} providers={providers} groupId={calendarGroup.id} />
                 </GroupPageSection>
                 <GroupPageSection title={"Settings"}  Icon={Settings}>
-                    <GroupPageSettings groupId={calendarGroup.id} syncEnabled={calendarGroup.settings?.syncEnabled } nameDuplicationEnabled={calendarGroup.settings?.nameDuplicationEnabled} syncFrequencyMinutes={calendarGroup.settings?.syncFrequencyMinutes} />
+                    <GroupPageSettings isPremium={user.premium} groupId={calendarGroup.id} syncEnabled={calendarGroup.settings?.syncEnabled } nameDuplicationEnabled={calendarGroup.settings?.nameDuplicationEnabled} syncFrequencyMinutes={calendarGroup.settings?.syncFrequencyMinutes} />
                 </GroupPageSection>
                 <GroupPageSection title={"Synchronization logs"} Icon={ClipboardList}>
                     <GroupPageLogs groupId={calendarGroup.id}/>

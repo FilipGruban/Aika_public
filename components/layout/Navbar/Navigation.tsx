@@ -37,7 +37,7 @@ function Navigation() {
                                 title={"About Premium"}
                             >Learn more about premium features</ListItem>
                             <ListItem
-                                href={"/dashboard/premium"}
+                                href={"/dashboard/premium/buy-premium"}
                                 title={"Buy Premium"}
                             >Gain access to premium features</ListItem>
                         </ul>

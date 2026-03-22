@@ -19,6 +19,10 @@ export async function saveSettings(settings : CalendarGroupSettingsInput, groupI
             return {success: false, message:"Invalid settings"};
         }
 
+        if(validatedSettings.data.syncFrequencyMinutes === "15" && !user.premium) {
+            return {success: false, message:"Buy premium to gain acccess to better sync frequency"};
+        }
+
         const group = await getCalendarGroup(groupId, user.id);
 
         if (!group) {

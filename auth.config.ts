@@ -71,6 +71,10 @@ export default {
                 session.user.name = token.name;
             }
 
+            if(token.premium instanceof Date){
+                session.user.premium = token.premium;
+            }
+
             return session;
         },
         async jwt({token}){
@@ -78,12 +82,12 @@ export default {
 
             const user = await getUserById(token.sub);
             if(!user) return token;
+
             token.role = user.role;
-
-            token.isPremium = user.premium;
+            token.premium = user.premium ? new Date(user.premium) : null;
             token.name = user.name;
-
             token.emailVerified = user.emailVerified ? new Date(user.emailVerified) : null;
+
             return token;
         },
     },
