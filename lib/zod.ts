@@ -119,7 +119,7 @@ export type createCalendarGroupInput = z.infer<typeof createCalendarGroupSchema>
 export const addSecondaryCalendarsSchema = z.object({
     calendars: z.array(
         z.object({
-            id: z.string(),
+            providerCalendarId: z.string(),
             provider: z.nativeEnum(Provider)
         })),
 });

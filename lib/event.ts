@@ -71,7 +71,11 @@ export async function getMicrosoftCalendarEvents(userId: string, calendarId: str
     if (!accessToken) {
         return null;
     }
-    const futureDate = new Date().toISOString();
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const futureDate = now.toISOString();
 
     const events = await axiosInstance.get(`https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(calendarId)}/events`, {
         headers: {

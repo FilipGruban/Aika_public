@@ -55,7 +55,6 @@ function PasswordResetForm({userId, token} : {userId: string, token: string}) {
                             name="password"
                             control={form.control}
                             label="New password"
-                            description="Type in your new password"
                             placeholder={"Choose strong password"}
                         />
                         <FormInput
@@ -63,7 +62,6 @@ function PasswordResetForm({userId, token} : {userId: string, token: string}) {
                             name="confirmPassword"
                             control={form.control}
                             label="Confirm your new password"
-                            description="Make sure your passwords match"
                             placeholder={"Type matching password"}
                         />
                         <Button

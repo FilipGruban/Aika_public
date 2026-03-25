@@ -42,12 +42,11 @@ async function Page({ params }: { params: Promise<{ id: string }>}) {
 
     const calendarClient = calendarGroup.calendars.map((calendar) => toProviderCalendarResponse(calendar) );
     const providers = await getProviders(user.id);
-
     return (
         <div className="p-6">
             <div className="max-w-5xl mx-auto space-y-6">
                 <GroupPageHeader createdAt={calendarGroup.createdAt} name={calendarGroup.name} id={calendarGroup.id} />
-                <GroupPageSection title={calendarGroup.name} subtitle={"Events from this calendar will be "} Icon={Calendar}>
+                <GroupPageSection title={calendarGroup.name} subtitle={"This is you source calenadar"} Icon={Calendar}>
                     <GroupPageMainCalendar name={calendarGroup.primaryCalendar.name} provider={calendarGroup.primaryCalendar.provider}/>
                 </GroupPageSection>
                 <GroupPageSection title={"Secondary calendars"} subtitle={"Events from these calendars will be synced to your primary calendar"} Icon={Calendar}>

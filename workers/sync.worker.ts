@@ -38,7 +38,8 @@ const syncWorker = new Worker<{ groupId: string, userId: string, syncLogId: stri
         return {success: true};
     },
     {
-        connection
+        connection,
+
     })
 
 

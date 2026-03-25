@@ -119,6 +119,7 @@ export async function syncCalendarGroup(groupId: string, userId: string, syncLog
     const eventsToDelete: Array<{event: Event, reason: 'name_duplicate'}> = [];
     const markedForDeletion = new Set<string>();
 
+
     for (const primaryEvent of primaryEvents) {
         for(const calendar of secondaryCalendars) {
             const matchResult = findMatchingEvent(

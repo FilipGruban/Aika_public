@@ -54,7 +54,9 @@ function ModifySecondaryCalendarsDialog({groupId, existingCalendars, availablePr
     const selectedCalendars = form.watch('calendars');
 
     const isCalendarSelected = (calendarId: string) => {
-        return selectedCalendars.some(c => c.id === calendarId);
+        console.log(calendarId);
+        console.log(selectedCalendars);
+        return selectedCalendars.some(c => c.providerCalendarId === calendarId);
     };
 
     const handleToggleCalendar = (calendar: ProviderCalendarResponse, checked: boolean) => {
@@ -62,11 +64,11 @@ function ModifySecondaryCalendarsDialog({groupId, existingCalendars, availablePr
         if (checked) {
             form.setValue('calendars', [
                 ...current,
-                { id: calendar.providerCalendarId, provider: calendar.provider }
+                { providerCalendarId: calendar.providerCalendarId, provider: calendar.provider }
             ]);
         } else {
             form.setValue('calendars',
-                current.filter(c => c.id !== calendar.providerCalendarId)
+                current.filter(c => c.providerCalendarId !== calendar.providerCalendarId)
             );
         }
     };
@@ -109,10 +111,10 @@ function ModifySecondaryCalendarsDialog({groupId, existingCalendars, availablePr
     return (
             <Dialog>
                 <DialogTrigger asChild>
-                        <Button size="sm">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Calendar
-                        </Button>
+                    <Button size="sm" className="w-full">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Calendar
+                    </Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader >
