@@ -6,6 +6,7 @@ import {prisma} from "@/lib/prisma";
 import {saveToken} from "@/lib/tokens";
 import {verifyCsrfToken} from "@/lib/oauth/csrf";
 import {notificationQueue} from "@/lib/queues";
+import {appUrl} from "@/lib/url";
 
 export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     const account = await getAccount(user.id, "microsoft")
 
     if(account){
-        return NextResponse.redirect(new URL("/dashboard/settings/providers?error=Microsoft+account+already+connected", req.url));
+        return NextResponse.redirect(appUrl("/dashboard/settings/providers?error=Microsoft+account+already+connected"));
     }
 
     const url = new URL(req.url);
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
     const csrfVerification = await verifyCsrfToken(state)
 
     if (!code || !csrfVerification) {
-        return NextResponse.redirect(new URL("/dashboard/settings/providers?error=Invalid+csrf+token", req.url));
+        return NextResponse.redirect(appUrl("/dashboard/settings/providers?error=Invalid+csrf+token"));
     }
 
     try {
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
         const granted = new Set(tokenData.scope.split(" "))
 
         if(!requiredScopes.every(scope => granted.has(scope))){
-            return NextResponse.redirect(new URL("/dashboard/settings/providers?error=Permisions+not+granted", req.url));
+            return NextResponse.redirect(appUrl("/dashboard/settings/providers?error=Permisions+not+granted"));
         }
 
 
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest) {
         })
 
         if(connectedAccount){
-            return NextResponse.redirect(new URL("/dashboard/settings/providers?error=This+account+is+already+connected+to+a+different+user", req.url));
+            return NextResponse.redirect(appUrl("/dashboard/settings/providers?error=This+account+is+already+connected+to+a+different+user"));
         }
 
         await saveToken({
@@ -94,11 +95,11 @@ export async function GET(req: NextRequest) {
 
         await notificationQueue.add('microsoft-connected-notification',{userId: user.id, type: "alert", title: "Microsoft account connected", message:"You have successfully conected your microsoft account."})
 
-        return NextResponse.redirect(new URL("/dashboard/settings/providers?success=Microsoft+account+successfully+connected", req.url));
+        return NextResponse.redirect(appUrl("/dashboard/settings/providers?success=Microsoft+account+successfully+connected"));
     }
     catch(error){
         console.error(error);
-        return NextResponse.redirect(new URL("/dashboard/settings/providers?error=Something+went+wrong", req.url));
+        return NextResponse.redirect(appUrl("/dashboard/settings/providers?error=Something+went+wrong"));
     }
 
 }
