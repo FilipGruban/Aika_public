@@ -4,30 +4,66 @@ import React from "react";
 export default function ResetPasswordEmail({ verificationUrl }: { verificationUrl: string }) {
     return (
         <Html lang="en">
-            <Head/>
+            <Head />
             <Tailwind>
-                <Body>
-                    <Preview>Password Reset</Preview>
-                    <Container className="w-full mx-auto text-center p-5 bg-background text-black">
-                        <Text className="text-xl font-semibold mb-4">
-                            Aika reset password request
-                        </Text>
-                        <Text className="text-base text-gray-600 mb-6">
-                            Click button bellow to reset your password
-                        </Text>
-                        <Button
-                            href={verificationUrl}
-                            className="bg-black text-white  rounded-xl px-4 py-2"
-                        >
-                            Reset Password
-                        </Button>
-                        <Text className="text-xs text-gray-400 mt-6 ">
-                            If you didn&rsquo;t make this request, you can safely ignore this email.
-                        </Text>
-                    </Container>
+                <Body className="m-0 p-0 w-full bg-[linear-gradient(135deg,#f8fafc_0%,#e6f4f1_100%)] font-sans">
+                    <Preview>Password reset - Aika</Preview>
+
+                    <table role="presentation" className="w-full h-full min-h-screen">
+                        <tr>
+                            <td align="center" valign="middle">
+
+                                <Container className="w-[420px] max-w-[90%] bg-white rounded-2xl border border-gray-200 shadow-[0_25px_50px_rgba(0,0,0,0.08)] p-8">
+
+                                    {/* Header */}
+                                    <div className="text-center mb-6">
+                                        <Text className="text-[20px] font-semibold text-slate-900 m-0">
+                                            Password Reset
+                                        </Text>
+                                        <Text className="text-sm text-slate-500 mt-2">
+                                            Reset your forgotten password
+                                        </Text>
+                                    </div>
+
+                                    {/* Inner panel (adds depth 🔥) */}
+                                    <div className="bg-slate-50 border border-gray-100 rounded-xl p-5 mb-6">
+                                        <Text className="text-sm text-slate-600 leading-relaxed m-0">
+                                            We received a request to reset your password. Click the button below to choose a new one.
+                                        </Text>
+
+                                        <Text className="text-xs text-slate-400 mt-3">
+                                            This link will expire in 1 hour.
+                                        </Text>
+                                    </div>
+
+                                    {/* Button (smaller + cleaner) */}
+                                    <div className="text-center mb-6">
+                                        <Button
+                                            href={verificationUrl}
+                                            className="inline-block bg-teal-700 text-white rounded-lg px-5 py-2.5 text-sm font-medium"
+                                        >
+                                            Reset Password
+                                        </Button>
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div className="h-px bg-gray-200 my-6" />
+
+                                    {/* Footer */}
+                                    <Text className="text-xs text-slate-400 text-center leading-relaxed m-0">
+                                        If you didn’t request this, you can safely ignore this email.
+                                    </Text>
+
+                                </Container>
+
+                            </td>
+                        </tr>
+                    </table>
                 </Body>
             </Tailwind>
         </Html>
+
+
     );
 }
 

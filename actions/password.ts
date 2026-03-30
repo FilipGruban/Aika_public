@@ -4,9 +4,7 @@ import {z} from "zod";
 import bcrypt from "bcryptjs";
 import {checkPasswordChangeLimit, checkPasswordResetLimit} from "@/lib/rate-limits";
 import {emailQueue} from "@/lib/queues";
-import {sendPasswordResetEmail} from "@/lib/email";
 import {getCurrentUser} from "@/lib/authUser";
-import {email} from "zod/v4";
 import {changePasswordSchema} from "@/lib/zod";
 
 export async function requestPasswordReset(email: string) {
@@ -30,7 +28,7 @@ export async function requestPasswordReset(email: string) {
             }
         }
 
-        await emailQueue.add('verify-email',{userId: user.id, email: user.email});
+        await emailQueue.add('password-reset',{userId: user.id, email: user.email});
 
         return {success:true, message: "If an account exists with this email, a reset link has been sent"};
     }
@@ -120,7 +118,6 @@ export async function changePassword(currentPassword: string, newPassword: strin
         if(!bcrypt.compareSync(currentPassword, dbUser.password)){
             return {success: false, message: "Incorrect current password"};
         }
-
         const hashedPassword = await bcrypt.hash(validatedValues.data.password, 10);
 
         const rateLimit = await checkPasswordChangeLimit(dbUser.email);
@@ -128,7 +125,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
             return {success: false, message: rateLimit.message};
         }
 
-        prisma.user.update({
+        await prisma.user.update({
             where: {
                 id: user.id,
             },
@@ -136,6 +133,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
                 password: hashedPassword
             }
         })
+        
         return {success:true, message: "Password changed successfully."};
     }
     catch(err){

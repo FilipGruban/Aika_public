@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { formatDistanceToNow } from 'date-fns';
 import {getCurrentUser} from "@/lib/authUser";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Dashboard",
+    description: "Monitor your calendar sync activity and manage integrations.",
+};
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();

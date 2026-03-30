@@ -14,7 +14,7 @@ const authPaths = ["/login", "/register", "/forgot-password", "/reset-password"]
 export default auth((req)=> {
 
     const nextUrl  = req.nextUrl;
-    const isLoggedIn = !!req.auth;
+    const isLoggedIn = !!req.auth?.user?.id;
 
     if(nextUrl.pathname.startsWith(authPrefix)){
         return NextResponse.next();

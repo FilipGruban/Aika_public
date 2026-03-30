@@ -7,6 +7,7 @@ import { getAccount } from "@/lib/user";
 import { appleIdSchema } from "@/lib/zod";
 import { NextRequest, NextResponse } from "next/server";
 import {notificationQueue} from "@/lib/queues";
+import {AxiosError} from "axios";
 
 export async function POST(req: NextRequest){
     const user = await getCurrentUser()
@@ -65,8 +66,12 @@ export async function POST(req: NextRequest){
         return NextResponse.json({message:"Successfully connected apple account"}, {status:200});
     }
     catch (err){
-        console.log(err)
-        return NextResponse.json({message:"Something went wrong"}, {status:400})
+        if(err instanceof AxiosError && err.status === 401){
+
+            return NextResponse.json({message:"Invalid credentials"}, {status:401})
+        }
+
+        return NextResponse.json({message:"Something went wrong"}, {status:500})
     }
 
 }

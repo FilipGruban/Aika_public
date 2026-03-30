@@ -17,7 +17,6 @@ const providerLogos = {
 };
 
 function GroupPageSecondaryCalendars({calendars, providers, groupId}: Props) {
-
     return (
         <>
             <ModifySecondaryCalendarsDialog availableProviders={providers} existingCalendars={calendars} groupId={groupId}/>

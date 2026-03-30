@@ -10,7 +10,25 @@ import {Settings, Calendar, TriangleAlert, ClipboardList} from "lucide-react";
 import GroupPageSettings from "@/components/GroupPageSettings";
 import GroupPageDangerZone from "@/components/GroupPageDangerZone";
 import GroupPageLogs from "@/components/GroupPageLogs";
+import {getCalendarGroup} from "@/lib/calendar";
+import { Metadata } from "next";
 
+
+
+export async function generateMetadata({ params } : {params : Promise<{id: string}>}): Promise<Metadata> {
+    const {id} = await params;
+    const user = await getCurrentUser();
+    if (!user) return{title: "Unknown group", description: "Manage sync settings for Unknown group"}
+
+
+    const group = await getCalendarGroup(id, user.id)
+    if(!group) return{title: "Unknown group", description: "Manage sync settings for Unknown group"}
+
+    return {
+        title: group.name,
+        description: `Manage sync settings for ${group.name}`,
+    };
+}
 
 async function Page({ params }: { params: Promise<{ id: string }>}) {
     const {id} = await params;
@@ -34,7 +52,7 @@ async function Page({ params }: { params: Promise<{ id: string }>}) {
 
     if (!calendarGroup) {
         return (
-            <div>
+            <div className={"text-center"}>
                 Group not found
             </div>
         )

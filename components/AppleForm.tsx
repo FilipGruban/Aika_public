@@ -12,6 +12,7 @@ import Link from "next/link";
 import axiosInstance from "@/lib/axios";
 import {toast} from "sonner";
 import { useRouter } from "next/navigation";
+import {AxiosError} from "axios";
 
 function AppleForm() {
     const router = useRouter();
@@ -25,14 +26,15 @@ function AppleForm() {
     async function handleSave(credentials: appleIdInput) {
         try {
             const response = await axiosInstance.post("/oauth/apple/connect", {credentials: credentials});
-            if (response.status !== 200) {
-                toast.error(response.data.message);
-                return;
-            }
+
             router.replace("/dashboard/settings/providers?success=Apple+successfully+connected");
         } catch (error) {
+            if (error instanceof AxiosError && error.status === 401) {
+                toast.error("Invalid credentials")
+                return;
+            }
             toast.error("Something went wrong");
-            console.error(error);
+            console.log(error);
         }
     }
 

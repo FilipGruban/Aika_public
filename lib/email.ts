@@ -23,7 +23,6 @@ export const mailOptions = {
 export async function sendVerificationEmail(id: string, email:string){
     const token = crypto.randomBytes(32).toString("hex");
     const expires = addMinutes(new Date(), 30);
-
     await prisma.verificationToken.create({
         data: {
             userId: id,
@@ -64,7 +63,7 @@ export async function sendPasswordResetEmail(id: string, email:string){
         },
     });
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}reset-password?token=${token}`;
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${token}`;
 
 
     const html = await renderResetPasswordEmail(resetUrl);

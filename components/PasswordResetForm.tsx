@@ -23,7 +23,7 @@ function PasswordResetForm({userId, token} : {userId: string, token: string}) {
 
     async function handlePasswordReset({password} : {password: string}) {
         try {
-            const res = await password(password, userId, token);
+            const res = await resetPassword(password, userId, token);
 
             if (!res.success){
                 toast.error(res.message)

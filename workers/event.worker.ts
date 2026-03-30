@@ -97,10 +97,6 @@ const eventWorker = new Worker<{ provider: Provider, providerCalendarId: string,
     }
 )
 
-eventWorker.on('ready', () => {
-    console.log(`Ready ${process.env.REDIS_URI}`);
-})
-
 eventWorker.on('completed', (job) => {
     console.log(`${job.id} completed`);
 })

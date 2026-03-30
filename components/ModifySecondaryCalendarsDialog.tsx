@@ -54,8 +54,6 @@ function ModifySecondaryCalendarsDialog({groupId, existingCalendars, availablePr
     const selectedCalendars = form.watch('calendars');
 
     const isCalendarSelected = (calendarId: string) => {
-        console.log(calendarId);
-        console.log(selectedCalendars);
         return selectedCalendars.some(c => c.providerCalendarId === calendarId);
     };
 

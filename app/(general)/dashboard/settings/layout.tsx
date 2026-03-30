@@ -1,4 +1,10 @@
 import SettingsMenu from "@/components/SettingsMenu";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Settings",
+    description: "Manage your account, integrations, and preferences.",
+};
 
 export default function Layout({children}: Readonly<{
     children: React.ReactNode;

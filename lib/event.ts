@@ -85,6 +85,7 @@ export async function getMicrosoftCalendarEvents(userId: string, calendarId: str
         params: {
             '$filter': `type eq 'seriesMaster' or (type eq 'singleInstance' and start/dateTime ge '${futureDate}')`,
             '$orderby': 'start/dateTime',
+            '$top': 999
         }
     })
 
@@ -93,7 +94,16 @@ export async function getMicrosoftCalendarEvents(userId: string, calendarId: str
         return null;
     }
 
-    return events.data.value.map((event: any) => parseMicrosoftEvent(event, calendarId));
+    return events.data.value.map((event: any) => parseMicrosoftEvent(event, calendarId)).filter((e: EventDTO)=>{
+        const skip = e.isAllDay || !!e.recurrenceRule;
+
+        const nowLocal = new Date();
+        const endTime = new Date(e.endTime)
+
+        if (skip) return true;
+
+        return endTime > nowLocal;
+    });
 
 }
 

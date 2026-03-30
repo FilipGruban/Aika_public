@@ -5,7 +5,8 @@ export const getUserById = async (id: string) => {
     try {
         return await prisma.user.findUnique({ where: { id: id }, omit:{password:true}});
     }
-    catch {
+    catch (e){
+        console.error("getUserById error:", e); // ← přidej toto
         return null;
     }
 }

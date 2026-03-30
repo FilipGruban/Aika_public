@@ -4,7 +4,6 @@ import "./globals.css";
 import {Toaster} from "sonner";
 import React from "react";
 import {Providers} from "@/app/Providers";
-import Navbar from "@/components/layout/Navbar/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,21 +16,41 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata : Metadata = {
-    title: "Aika | Unified Calendar Sync",
+    metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"),
+    title: {
+        default: "Aika – Unified Calendar Sync",
+        template: "%s | Aika",
+    },
     description:
-        "Aika lets you sync, manage, and monitor calendars from multiple providers in one streamlined dashboard. Built for teams, powered by modern tech.",
+        "Sync, manage, and monitor calendars from multiple providers in one clean dashboard. Built for teams and power users.",
     keywords: [
         "calendar sync",
         "calendar integration",
-        "event manager",
-        "Prisma",
-        "Next.js",
-        "Aika app",
-        "calendar API",
+        "calendar automation",
+        "event synchronization",
+        "multi calendar",
+        "Aika",
     ],
+    authors: [{ name: "Aika" }],
+    creator: "Aika",
     icons: {
         icon: "/icon.svg",
         shortcut: "/icon.svg",
+    },
+    openGraph: {
+        title: "Aika – Unified Calendar Sync",
+        description:
+            "Sync all your calendars into one streamlined dashboard.",
+        url: process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:3000",
+        siteName: "Aika",
+        locale: "en_US",
+        type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Aika – Unified Calendar Sync",
+        description:
+            "Manage all your calendars in one place.",
     },
 };
 

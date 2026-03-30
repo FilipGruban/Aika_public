@@ -9,7 +9,7 @@ const emailWorker = new Worker<{userId:string, email:string}>(
             case 'verify-email':
                 await sendVerificationEmail(job.data.userId, job.data.email);
                 return {success:true};
-            case 'reset-email':
+            case 'password-reset':
                 await sendPasswordResetEmail(job.data.userId, job.data.email);
                 return {success:true};
         }

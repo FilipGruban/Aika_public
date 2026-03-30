@@ -3,7 +3,6 @@ import type { NextAuthConfig } from "next-auth"
 import {signInSchema} from "@/lib/zod";
 import {prisma} from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import {getUserById} from "@/lib/user";
 
 export default {
     providers: [
@@ -55,6 +54,7 @@ export default {
             return true;
         },
         async session({token, session}){
+
             if(token.sub && session.user){
                 session.user.id = token.sub;
             }
@@ -63,32 +63,19 @@ export default {
                 session.user.role = token.role;
             }
 
-            if(token.emailVerified instanceof Date){
-                session.user.emailVerified = token.emailVerified
+            if(token.emailVerified){
+                session.user.emailVerified = new Date(token.emailVerified as string);
             }
 
             if(token.name && session.user){
                 session.user.name = token.name;
             }
 
-            if(token.premium instanceof Date){
-                session.user.premium = token.premium;
+            if(token.premium){
+                session.user.premium = new Date(token.premium as string);
             }
 
             return session;
-        },
-        async jwt({token}){
-            if(!token.sub) return token;
-
-            const user = await getUserById(token.sub);
-            if(!user) return token;
-
-            token.role = user.role;
-            token.premium = user.premium ? new Date(user.premium) : null;
-            token.name = user.name;
-            token.emailVerified = user.emailVerified ? new Date(user.emailVerified) : null;
-
-            return token;
         },
     },
     pages: {

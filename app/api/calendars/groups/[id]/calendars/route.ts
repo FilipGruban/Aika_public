@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const usedCalendarIds = await getUsedCalendarIds(user.id, undefined, id);
 
         const results  = await Promise.all(calendars.map( async (calendar) => {
-            const res = await getCalendarFromProvider(calendar.provider, calendar.id, user.id);
+            const res = await getCalendarFromProvider(calendar.provider, calendar.providerCalendarId, user.id);
             if(!res || res.accessRole !== "owner" || usedCalendarIds.includes(res.providerCalendarId)) return;
             return res;
         }))

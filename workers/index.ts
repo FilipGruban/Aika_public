@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import emailWorker from './email.worker';
 import notificationWorker from './notification.worker';
 import eventWorker from './event.worker';
