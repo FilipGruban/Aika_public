@@ -5,7 +5,7 @@ import {Form} from "@/components/ui/form";
 import FormInput from "@/components/FormInput";
 import {Button} from "@/components/ui/button";
 import {useForm} from "react-hook-form";
-import {appleIdInput, appleIdSchema, SignInInput} from "@/lib/zod";
+import {appleIdInput, appleIdSchema} from "@/lib/zod";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import Link from "next/link";

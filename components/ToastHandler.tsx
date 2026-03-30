@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-import {toast} from "sonner";
-import { usePathname, useSearchParams} from 'next/navigation'
-import {useRef} from "react";
-import {useRouter} from "next/navigation"
+import { Suspense } from "react"
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { usePathname, useSearchParams } from 'next/navigation'
+import { useRouter } from "next/navigation"
 
-export default function ToastHandler(){
+function ToastHandlerInner() {
     const params = useSearchParams();
     const success = params.get("success");
     const error = params.get("error");
@@ -35,4 +35,12 @@ export default function ToastHandler(){
     }, [success, error, info]);
 
     return null;
+}
+
+export default function ToastHandler() {
+    return (
+        <Suspense fallback={null}>
+            <ToastHandlerInner />
+        </Suspense>
+    )
 }

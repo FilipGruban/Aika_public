@@ -20,7 +20,7 @@ import {Form, FormField, FormItem, FormMessage} from "@/components/ui/form";
 import {Checkbox} from "@/components/ui/checkbox";
 import Image from "next/image";
 import {Label} from "@/components/ui/label";
-import {CalendarDTO, ProviderCalendarResponse} from "@/types/calendar";
+import { ProviderCalendarResponse} from "@/types/calendar";
 import {toast} from "sonner";
 import {AxiosError} from "axios";
 import axiosInstance from "@/lib/axios";
