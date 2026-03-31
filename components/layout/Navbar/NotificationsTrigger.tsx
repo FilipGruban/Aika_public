@@ -6,7 +6,7 @@ import NotificationsList from "@/components/layout/Navbar/NotificationsList";
 function NotificationsTrigger() {
     return (
         <Popover>
-            <PopoverTrigger className={"cursor-pointer"}>
+            <PopoverTrigger className={"cursor-pointer hidden md:block"}>
                 <Bell className={"h-6 w-6 text-gray-800"}/>
             </PopoverTrigger>
             <PopoverContent className={"min-w-lg"}>

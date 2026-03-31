@@ -21,12 +21,12 @@ export function GroupCard({id, name, calendarCount = 0, createdAt, description}:
         >
             <div className="p-6 flex items-center justify-between gap-6">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-6 h-6 text-primary" />
+                    <div className="hidden w-8 h-8 rounded-xl bg-primary/10 sm:flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-4 h-4 text-primary sm:h-6 sm:w-6" />
                     </div>
 
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg truncate mb-1">{name}</h3>
+                        <h3 className="font-semibold  sm:text-lg truncate mb-1">{name}</h3>
                         {description && (
                             <p className="text-sm text-muted-foreground truncate">
                                 {description}
@@ -35,9 +35,9 @@ export function GroupCard({id, name, calendarCount = 0, createdAt, description}:
                     </div>
                 </div>
 
-                <div className="flex items-center gap-8 text-sm">
+                <div className="flex items-center gap-3 sm:gap-8 text-sm">
                     <div className="text-center">
-                        <div className="font-semibold text-lg">{calendarCount}</div>
+                        <div className="font-semibold text-sm sm:text-lg">{calendarCount}</div>
                         <div className="text-muted-foreground text-xs">Calendars</div>
                     </div>
                     <div className="text-right min-w-[100px]">

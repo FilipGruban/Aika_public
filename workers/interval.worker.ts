@@ -8,9 +8,7 @@ import {prisma} from "@/lib/prisma";
 const intervalWorker = new Worker<{groupId: string, userId: string}>('interval-sync', async (job) => {
         const group = await prisma.calendarGroup.findUnique({ where: { id: job.data.groupId } });
         if(!group){
-            console.log("Deleting interval for ", job.data.groupId);
             const result = await syncIntervalQueue.removeJobScheduler(`auto-sync-${job.data.groupId}`);
-            console.log("deleted:", result);
             return { success: false, reason: "Group not found" };
         }
 

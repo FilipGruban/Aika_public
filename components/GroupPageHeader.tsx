@@ -44,7 +44,7 @@ function GroupPageHeader({name, createdAt, id}: Props) {
                     </Button>
                 </Link>
                 <div className="space-y-1 flex-1">
-                    <h1 className="text-3xl font-bold">{name}</h1>
+                    <h1 className="text-3xl font-bold sm:max-w-none max-w-[200px] truncate">{name}</h1>
                     <p className="text-sm text-muted-foreground/80">
                         Created {createdAt.toLocaleDateString()}
                     </p>

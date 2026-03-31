@@ -114,20 +114,20 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
                     </h2>
                     <div className="space-y-2">
                         {groupedEntries.added.map(entry => (
-                            <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-3 flex-1">
-                                    <Calendar className="w-4 h-4 text-gray-400" />
+                            <div key={entry.id} className="flex sm:flex-row flex-col items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="items-center gap-3 flex-1 flex">
+                                    <Calendar className="w-4 h-4 text-gray-400 hidden sm:block" />
                                     <span className="font-medium text-gray-900">{entry.eventTitle}</span>
                                 </div>
                                 <div className="text-sm text-gray-500 flex items-center gap-2">
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 min-w-0">
                                         <ProviderIcon provider={entry.sourceCalendar.provider} />
-                                        <span>{entry.sourceCalendar.name}</span>
+                                        <span className="truncate sm:max-w-[240px] max-w-[120px]">{entry.sourceCalendar.name}</span>
                                     </div>
                                     <span>→</span>
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 min-w-0">
                                         <ProviderIcon provider={entry.targetCalendar.provider} />
-                                        <span>{entry.targetCalendar.name}</span>
+                                        <span className="truncate sm:max-w-[240px] max-w-[120px]">{entry.targetCalendar.name}</span>
                                     </div>
                                 </div>
                             </div>
@@ -144,14 +144,16 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
                     </h2>
                     <div className="space-y-2">
                         {groupedEntries.deleted.map(entry => (
-                            <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-3 flex-1">
-                                    <Calendar className="w-4 h-4 text-gray-400" />
+                            <div key={entry.id} className="flex sm:flex-row flex-col items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="items-center gap-3 flex-1 flex">
+                                    <Calendar className="w-4 h-4 text-gray-400 hidden sm:block" />
                                     <span className="font-medium text-gray-900">{entry.eventTitle}</span>
                                 </div>
-                                <div className="text-sm text-gray-500 flex gap-2 items-center ">
-                                    <ProviderIcon provider={entry.targetCalendar.provider} />
-                                    <span>{entry.targetCalendar.name}</span>
+                                <div className="text-sm text-gray-500 flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <ProviderIcon provider={entry.targetCalendar.provider} />
+                                        <span className="truncate sm:max-w-[240px] max-w-[120px]">{entry.targetCalendar.name}</span>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -159,7 +161,6 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
                 </div>
             )}
 
-            {/* Failed Events */}
             {groupedEntries.failed.length > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -169,20 +170,20 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
                     <div className="space-y-2">
                         {groupedEntries.failed.map(entry => (
                             <div key={entry.id} className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <Calendar className="w-4 h-4 text-red-400" />
+                                <div className="flex sm:flex-row flex-col items-center justify-between mb-2">
+                                    <div className="items-center gap-3 flex-1 flex">
+                                        <Calendar className="w-4 h-4 text-red-400 hidden sm:block" />
                                         <span className="font-medium text-gray-900">{entry.eventTitle}</span>
                                     </div>
                                     <div className="text-sm text-gray-500 flex items-center gap-2">
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex items-center gap-1.5 min-w-0">
                                             <ProviderIcon provider={entry.sourceCalendar.provider} />
-                                            <span>{entry.sourceCalendar.name}</span>
+                                            <span className="truncate sm:max-w-[240px] max-w-[120px]">{entry.sourceCalendar.name}</span>
                                         </div>
                                         <span>→</span>
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex items-center gap-1.5 min-w-0">
                                             <ProviderIcon provider={entry.targetCalendar.provider} />
-                                            <span>{entry.targetCalendar.name}</span>
+                                            <span className="truncate sm:max-w-[240px] max-w-[120px]">{entry.targetCalendar.name}</span>
                                         </div>
                                     </div>
                                 </div>

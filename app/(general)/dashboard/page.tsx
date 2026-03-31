@@ -148,7 +148,7 @@ export default async function DashboardPage() {
                                             <div className="flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors cursor-pointer">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <h3 className="font-medium">{group.name}</h3>
+                                                        <h3 className="font-medium sm:max-w-none max-w-[120px] truncate">{group.name}</h3>
                                                         {group.settings?.syncEnabled && (
                                                             <Badge variant="outline" className="text-xs">
                                                                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5" />
@@ -197,7 +197,7 @@ export default async function DashboardPage() {
                                                 <div className="p-3 rounded-lg hover:bg-accent transition-colors cursor-pointer">
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="font-medium">{log.group.name}</span>
+                                                            <span className="font-medium sm:max-w-none max-w-[120px] truncate">{log.group.name}</span>
                                                             <Badge variant={statusVariants[log.status as keyof typeof statusVariants] as any} className="text-xs capitalize">
                                                                 {log.status}
                                                             </Badge>

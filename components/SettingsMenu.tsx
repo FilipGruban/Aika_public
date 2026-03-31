@@ -19,8 +19,8 @@ function SettingsMenu() {
                 <Link href="/dashboard/settings/providers" className={cn("rounded-md px-3 py-2 text-base font-medium transition-colors", pathname === "/dashboard/settings/providers" ? "bg-muted text-primary":"hover:bg-muted/40 text-muted-foreground")}>
                     Connections
                 </Link>
-                <Separator />
-                <div className="mt-auto">
+                <Separator className="hidden md:block"/>
+                <div className="mt-auto hidden md:block">
                     <form action={signOutAction}>
                         <button
                             type="submit"

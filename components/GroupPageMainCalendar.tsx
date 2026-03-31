@@ -31,7 +31,7 @@ function GroupPageMainCalendar({name, provider}: Props) {
                     />
                 </div>
                 <div>
-                    <h3 className="font-semibold text-sm sm:text-lg">{name}</h3>
+                    <h3 className="font-semibold text-sm sm:text-lg sm:max-w-none max-w-[180px] truncate">{name}</h3>
                     <p className="text-sm text-muted-foreground capitalize">
                         {provider} • Primary
                     </p>

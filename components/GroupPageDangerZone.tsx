@@ -56,7 +56,7 @@ function GroupPageDangerZone({groupId, groupName}: DangerZoneProps) {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <div className="flex flex-row items-center justify-between p-4 border border-destructive/50 rounded-lg">
+            <div className="flex gap-2 flex-col sm:flex-row items-center justify-between p-4 border border-destructive/50 rounded-lg">
                 <div className="space-y-0.5">
                     <div className="text-base font-medium">Delete Calendar Group</div>
                     <div className="text-sm text-muted-foreground">
